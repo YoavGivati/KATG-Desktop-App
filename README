@@ -1,17 +1,18 @@
-# The Keith and The Girl Desktop App
-Special thanks to Keith and Chemda for inspiring the app [http://keithandthegirl.com](http://keithandthegirl.com)
+The Keith and The Girl Desktop App
+==================================
+Special thanks to Keith and Chemda for inspiring the app. http://keithandthegirl.com
 
-## Updating
+Updating
+--------
 The app uses a certificate to ensure updates are released by the same author. 
 [_**Please refrain from distributing your own compiled binaries** for this reason_.]
 
-The appropriate place to get the latest version is [http://katgdesktop.yoavgivati.com](http://katgdesktop.yoavgivati.com)
+The appropriate place to get the latest version is http://katgdesktop.yoavgivati.com
 
-## Legal
+Legal
+-----
 ### 3rd party libraries
 Used library's state their copyrights in the code or in adjacent text files
 
 ### Code written and other assets created by Yoav Givati and the KATG community
-Is public domain. Modify, reuse, repurpose, whatever.
-
-
+Is fully open source. Modify, reuse, repurpose, whatever.
