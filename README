@@ -1,12 +1,3 @@
-GitHub Markup
-=============
-
-We use this library on GitHub when rendering your README or any other
-rich text file.
-
-Markups
--------
-
 The Keith and The Girl Desktop App
 =============
 
@@ -16,7 +7,7 @@ Updating
 --------
 
 The app uses a certificate to ensure updates are released by the same author. 
-[_**Please refrain from distributing your own compiled binaries** for this reason_.]
+[**Please refrain from distributing your own compiled binaries** for this reason.]
 
 The appropriate place to get the latest version is http://katgdesktop.yoavgivati.com
 
