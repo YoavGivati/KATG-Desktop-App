@@ -12,6 +12,6 @@ The app uses a certificate to ensure updates are released by the same author.
 The appropriate place to get the latest version is http://katgdesktop.yoavgivati.com
 
 
-### Code and other assets contributed by Yoav Givati and the KATG community
+### Legal
 
-With the exception of 3rd party libraries is fully open source. Modify, reuse, repurpose, whatever.
+With the exception of 3rd party libraries, everything is fully open source. Modify, reuse, repurpose, whatever.
