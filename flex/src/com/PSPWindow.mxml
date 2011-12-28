@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Window xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" 
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   creationComplete="createComplete()" closing="logout();"  width="698" height="420" backgroundColor="#0D3954" color="#BFBFBF" textAlign="left" xmlns:com="com.*">
+	<s:states>
+		<s:State name="State1"/>
+		<s:State name="connected"/>
+	</s:states>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		<s:HTTPService id="http_listUsers" url="http://apps.chalk-it-out.com/KATG/katg_psp.php" method="POST" />
+		<s:HTTPService id="http_MangePeers" url="http://apps.chalk-it-out.com/KATG/katg_psp.php" method="POST"/>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+		
+				private function createComplete():void
+				{
+					
+				}
+			
+				private function logout():void
+				{
+					
+				}
+			
+				private function htmlLocationChange():void
+				{
+					trace("location change")
+				}
+			
+				private function htmlComplete():void
+				{
+					if(html_Chat.htmlLoader.window.PanelRedirect)
+					{
+						// user succesfully logged into the chat.
+						// redirect to the chat
+						html_Chat.location = "http://www.keithandthegirl.com/Chat/Chatroom.aspx"
+						// change state to logged in
+						currentState = 'connected'
+					}
+				}
+			
+				
+			
+				private function startBroadcasting():void
+				{
+					
+				}
+				
+				public var username:String = new String('');
+				
+				private function keyUp():void
+				{
+					// used to save the username typed in
+					if(html_Chat.location == "http://www.keithandthegirl.com/Chat/Chat-Login.aspx")
+					{
+						username = html_Chat.htmlLoader.window.Username.value
+					}
+				}
+			
+			
+		]]>
+	</fx:Script>
+	
+	<mx:Button y="10" label="Logout" click="close()" includeIn="connected" right="5" buttonMode="true" useHandCursor="true" chromeColor="#083C72" color="#FFFFFF" fontSize="11"/>
+	
+	
+	
+	<mx:Button y="10" id="btn_startBroadcasting" label="Start Broadcasting" click="startBroadcasting()" includeIn="connected" right="74" width="112" buttonMode="true" useHandCursor="true" chromeColor="#083C72" color="#FFFFFF" fontSize="11"/>
+	
+	<s:ComboBox includeIn="connected" selectionColor="#454545" id="cmbox_CameraNames" requireSelection="true" width="133" right="5" top="179"/>
+	<s:Label includeIn="connected" text="Cam:" fontWeight="bold" fontSize="14" top="184" left="513"/>
+	<mx:List width="181" id="list_users" dataProvider="{http_listUsers.lastResult.data.user}" itemRenderer="com.itemrenderers.UserListItem" includeIn="connected" right="5" top="178" bottom="5"></mx:List>
+	
+	<s:Label includeIn="connected" id="lbl_myUsername" right="5" width="181" top="163" color="#FFFFFF" height="16"/>
+	<mx:VDividedBox verticalGap.connected="0" liveDragging.connected="true" top.connected="10" bottom.connected="5" left.connected="5" right.connected="190">
+		
+
+	<mx:Tile id="tileg_Cams" includeIn="connected" minHeight="150" width="100%">
+	</mx:Tile>
+	<mx:HTML keyUp="keyUp()" location="http://www.keithandthegirl.com/Chat/Chatroom.aspx" locationChange="htmlLocationChange()" complete="htmlComplete()" top="0" bottom="0" left="0" right="0" id="html_Chat" top.connected="204" left.connected="0" bottom.connected="0" right.connected="193" width.connected="100%"/>
+	</mx:VDividedBox>
+	<com:videoUnit includeIn="connected" y="34" right="5" controlsVisible="false">
+	</com:videoUnit>
+	
+</s:Window>

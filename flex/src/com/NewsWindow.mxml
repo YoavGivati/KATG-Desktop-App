@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="734" height="300" backgroundColor="#FFFFFF"
+		 creationComplete="windowCreationComplete()" minWidth="600" minHeight="300" resizeEffect="Resize"
+		  transformX="{width/2}" transformY="{height/2}" visible="false" show="Show()" >
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		
+
+		
+		
+	
+
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.XMLListCollection;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.HTTPService;
+			
+			[Bindable]
+			public var httpTwitterMain:HTTPService;
+			[Bindable]
+			public var httpTwitterCommunity:HTTPService;
+			[Bindable]
+			public var httpForumsMain:HTTPService;
+			[Bindable]
+			public var httpForumsShite:HTTPService;
+			
+			
+			private function windowCreationComplete():void
+			{
+				// fetch external data
+				// Main Twitters, first update chemda's, then chain on keith's.. once the result for keith is in merge them together
+				// and update the view
+				if(httpTwitterCommunity.lastResult)
+				{
+					tbtn_twitter.enabled = true;
+				} else {
+					httpTwitterCommunity.addEventListener(ResultEvent.RESULT, function(){
+						tbtn_twitter.enabled = true;
+					});
+				}
+					
+				if(httpForumsMain.lastResult)
+				{
+					tbtn_forums.enabled = true;
+				} else {
+					httpForumsMain.addEventListener(ResultEvent.RESULT, function(){
+						tbtn_forums.enabled = true;
+					});
+				}
+				
+				
+				
+				
+				
+				
+			}
+			
+			private function httpFault(error:FaultEvent):void
+			{
+				trace("http error: "+error.message)
+			}
+			
+			private function toggleTweets():void
+			{
+				if(tbtn_twitter.selected)
+				{
+					list_twitter.dataProvider = httpTwitterCommunity.lastResult.rss.channel.item;					
+				} else {
+					list_twitter.dataProvider = httpTwitterMain.lastResult.rss.channel.item;
+				}
+				
+			}
+			
+			private function toggleForums():void
+			{
+				if(tbtn_forums.selected)
+				{
+					list_forums.dataProvider = httpForumsMain.lastResult.rss.channel.item;					
+				} else {
+					list_forums.dataProvider = httpForumsShite.lastResult.rss.channel.item;
+				}
+				
+			}
+			
+			private function Show():void
+			{
+				
+			}
+			
+			public var calendarWindow:CalendarWindow;
+			
+			public function openCalendarWindow():void
+			{
+				
+				if(!calendarWindow || calendarWindow.closed) {
+					calendarWindow = new CalendarWindow;
+					calendarWindow.open();
+				} else {
+					calendarWindow.open();
+					calendarWindow.restore();
+					calendarWindow.setFocus()
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<mx:HBox left="10" top="23" bottom="8" right="10" >
+		<s:BorderContainer width="40%" height="100%" minWidth="0" backgroundColor="#D7E8BE" contentBackgroundColor="#D7E8BE">
+			<mx:List id="list_twitter" bottom="0" liveScrolling="true" top="21" left="0" right="0" offscreenExtraRowsOrColumns="20" dataProvider="{httpTwitterMain.lastResult.rss.channel.item}" itemRenderer="com.itemrenderers.Twitter"></mx:List>
+			<s:Label x="0" y="5" text="Twitter" fontSize="18" fontWeight="bold"/>
+			<s:ToggleButton buttonMode="true" useHandCursor="true" id="tbtn_twitter" enabled="false" y="0" label="Community Tweets" click="toggleTweets()" right="0"/>
+		</s:BorderContainer>
+		<s:BorderContainer width="60%" height="100%" minWidth="0" backgroundColor="#D7E8BE" contentBackgroundColor="#D7E8BE">
+			<s:List id="list_forums" bottom="0" top="20" left="0" right="0" labelField="title" dataProvider="{httpForumsShite.lastResult.rss.channel.item}" itemRenderer="com.itemrenderers.Forums"></s:List>
+			<s:Label x="0" y="5" text="Talk Shite" fontSize="18" fontWeight="bold"/>
+			<s:ToggleButton buttonMode="true" useHandCursor="true" id="tbtn_forums" enabled="false" label="All Forums" click="toggleForums()" right="0" y="0"/>
+		</s:BorderContainer>
+		
+	</mx:HBox>
+	<s:Button y="0" buttonMode="true" useHandCursor="true" label="Meetups" right="10" click="navigateToURL(new URLRequest('http://www.keithandthegirl.com/forums/f22/'))"/>
+	<s:Button y="0" buttonMode="true" useHandCursor="true" label="Calendar" right="79" click="openCalendarWindow()"/>
+	<s:Button y="0" buttonMode="true" useHandCursor="true" label="x" click="visible=false" chromeColor="#098014" color="#FFFFFF" horizontalCenter="0" width="28"/>
+	<s:Label x="9" y="5" text="News" fontSize="14" fontWeight="bold"/>
+	
+</mx:Canvas>

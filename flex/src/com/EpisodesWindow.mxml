@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		   xmlns:s="library://ns.adobe.com/flex/spark" 
+		   xmlns:mx="library://ns.adobe.com/flex/mx" width="734" height="300" backgroundColor="#FFFFFF"
+		   creationComplete="windowCreationComplete()" minWidth="600" minHeight="300" resizeEffect="Resize"
+		   transformX="{width/2}" transformY="{height/2}" visible="false" show="Show()" cornerRadius="4" borderColor="#FFFFFF" borderVisible="true">
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		
+		
+		
+		
+		
+		
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.collections.XMLListCollection;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.HTTPService;
+			
+			[Bindable]
+			public var http_KATG:HTTPService;
+			[Bindable]
+			public var http_Backstage:HTTPService;
+			[Bindable]
+			public var http_Pictures:HTTPService;
+			
+			public var EpisodesDirectory:File;
+			
+			
+			public var StreamEpisode:Function;
+			
+			public var openShowPicturesWindow:Function;
+			
+			private function windowCreationComplete():void
+			{
+				// fetch external data
+				// Main Twitters, first update chemda's, then chain on keith's.. once the result for keith is in merge them together
+				// and update the view
+				if(http_Backstage.lastResult)
+				{
+					tbtn_backstage.enabled = true;
+				} else {
+					http_Backstage.addEventListener(ResultEvent.RESULT, function(){
+						tbtn_backstage.enabled = true;
+					});
+				}
+				
+				if(http_KATG.lastResult)
+				{
+					btn_showPictures.enabled = true;
+				} else {
+					http_KATG.addEventListener(ResultEvent.RESULT, function(){
+						btn_showPictures.enabled = true;
+					});
+				}
+				
+				
+				
+				
+				
+				
+			}
+			
+			private function httpFault(error:FaultEvent):void
+			{
+				trace("http error: "+error.message)
+			}
+			
+			private function toggleEpisodes():void
+			{
+				if(tbtn_backstage.selected)
+				{
+					list_episodes.dataProvider = http_Backstage.lastResult.rss.channel.item;					
+				} else {
+					list_episodes.dataProvider = http_KATG.lastResult.rss.channel.item;
+				}
+				
+			}
+			
+			
+			
+			private function Show():void
+			{
+				
+			}
+			
+			public var calendarWindow:CalendarWindow;
+			
+			public function openCalendarWindow():void
+			{
+				
+				if(!calendarWindow || calendarWindow.closed) {
+					calendarWindow = new CalendarWindow;
+					calendarWindow.open();
+				} else {
+					calendarWindow.open();
+					calendarWindow.restore();
+					calendarWindow.setFocus()
+				}
+			}
+			
+			
+			
+			/**
+			* Download episodes
+			*/
+			[Bindable]
+			private var downloadQueue:ArrayCollection = new ArrayCollection()
+			
+			public function AddToDownloadQueue(o:Object):void
+			{
+				downloadQueue.addItem(o);
+				if(downloadQueue.length == 1)
+				{
+					DownloadFile()
+				}
+			}
+			
+			public var orderToFront:Function
+			
+			public function SearchAddToDownloadQueue(url:String):void
+			{
+				
+				list_episodes.dataProvider = http_KATG.lastResult.rss.channel.item;
+				orderToFront()
+				this.visible = true;
+				trace("searching for episode...")
+				if(list_episodes.dataProvider.length > 0)
+				{
+					trace("episodes found...")
+					for(var i:int = 0; i< list_episodes.dataProvider.length; i++)
+					{
+						list_episodes.selectedIndex = i
+						trace("----"+i)
+						trace(url)
+						trace(list_episodes.selectedItem.enclosure.url)
+						trace("----")
+						
+						if(list_episodes.selectedItem.enclosure.url == url)
+						{
+							AddToDownloadQueue(list_episodes.selectedItem)
+							return;
+						}
+					}
+				}
+			}
+			
+			//call download
+			public var stream:URLStream;
+			public var fileStream:FileStream;
+			public var file:File;
+			public var req:URLRequest;
+			
+			private function DownloadFile():void {
+				
+					trace('cgcgcgcgcg')
+					
+					list_downloads.rotationY = -30
+					
+					
+					
+					
+					req = new URLRequest(downloadQueue.getItemAt(0).enclosure.url);
+					stream = new URLStream();
+					fileStream = new FileStream();	
+					
+					stream.addEventListener(Event.COMPLETE, fnWriteEpisodeToFile);
+					stream.addEventListener(ProgressEvent.PROGRESS, fnEpisodeDownloadProgress);
+					
+					
+					var type:String = downloadQueue.getItemAt(0).enclosure.type;
+					if(type == 'audio/mpeg'){
+						type = 'mp3';
+					} else if(type == 'video/mp4'){
+						type = 'm4v';
+					} else if(type == 'application/pdf'){
+						type = 'pdf';
+					}
+					type = '.'+type;
+					downloadQueue.getItemAt(0).type = type;
+					
+					var location:String = downloadQueue.getItemAt(0).title.replace(':', '-');
+					file = EpisodesDirectory.resolvePath(location+type);
+					
+					fileStream.openAsync(file, FileMode.WRITE);
+					stream.load(req); 
+					
+					
+					
+					//when the episode is finished downloading enter it into the database	
+				
+			}
+			
+			public function fnCancelEpisodeDownload(all:Boolean = false):void {
+				
+				
+				var i:int = list_queue.selectedIndex
+					
+				if(i == 0)
+				{
+					stream.close();
+					fileStream.close();
+					fnSelectEpisodes();
+					file.deleteFile();
+					if(all == true)
+					{
+						return
+					}
+				}
+				
+				progress.setProgress(0, 100)
+				
+				downloadQueue.removeItemAt(list_queue.selectedIndex)
+				
+				if(downloadQueue.length > 0)
+				{
+					if(i == 0)
+					{
+						list_queue.selectedIndex = 0
+						DownloadFile()
+					}
+				} else {
+					list_downloads.rotationY = 0
+				}
+				
+				
+				
+			}	
+			
+			private function fnEpisodeDownloadProgress(event:ProgressEvent):void {
+				// update download queue itemrenderer for download progress
+				
+				progress.setProgress(event.bytesLoaded, downloadQueue.getItemAt(0).enclosure.length)
+				
+				if (stream.connected) {
+					if (stream.bytesAvailable > 51200) {
+						var data:ByteArray = new ByteArray();
+						stream.readBytes(data,0,stream.bytesAvailable);
+						fileStream.writeBytes(data,0,data.length);
+					}
+				}
+			}
+			
+			private function fnWriteEpisodeToFile(evt:Event = null):void {
+				fileStream.close();
+				stream.close();
+				var title:String = downloadQueue.getItemAt(0).title.replace(':', '-');
+				
+				var description:String = new String('')
+				try
+				{
+					description = downloadQueue.getItemAt(0).description
+					var reg:RegExp = new RegExp(/(&quot;)|"/g);
+					description = description.replace(reg, "");
+						
+					
+					
+				
+					
+				}catch(e:Error){trace(e.message)}
+				var type:String = downloadQueue.getItemAt(0).type
+				
+				
+				
+				
+				var location:String = title.replace(':', '-');
+				fnInsertEpisode(title, location, description, type); 
+				
+				
+			}
+			public var insertEpisode:SQLStatement = new SQLStatement;
+			public var conn:SQLConnection
+			
+			
+			public function fnInsertEpisode(title:String, location:String, description:String, type:String):void {
+				insertEpisode.sqlConnection = conn;	
+				insertEpisode.text = 
+					"INSERT INTO episodes (title, location, description, type) " + 
+					'VALUES ("'+title+'","'+location+'","'+description+'","'+type+'")';
+				try {
+					insertEpisode.execute();
+				} catch (error:SQLError) {
+					trace(error.message)
+				}
+				
+				// remove downloading from the download list
+				downloadQueue.removeItemAt(0);
+				
+				//once inserted update Episodes 
+				fnSelectEpisodes();
+				
+				// if there are more items to download, start downloading
+				if(downloadQueue.length > 0)
+				{
+					DownloadFile()
+				} else {
+					// hide downloading manager
+					list_downloads.rotationY = 0
+					
+				}
+				
+			}
+			
+			public var selectEpisodes:SQLStatement = new SQLStatement;
+			
+			[Bindable]
+			private var Downloads:ArrayCollection = new ArrayCollection();
+			
+			public function fnSelectEpisodes(e:Event = null):void {
+				// called after preferences inserted into database.
+				selectEpisodes.sqlConnection = conn;
+				selectEpisodes.text =
+					"SELECT * FROM episodes";
+				
+				try{		
+					selectEpisodes.execute();
+					
+					Downloads = new ArrayCollection(selectEpisodes.getResult().data)
+				} catch (error:SQLError) {
+					trace(error)
+					}
+				
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<mx:HBox left="10" top="23" bottom="8" right="10" >
+		<s:BorderContainer width="55%" height="100%" minWidth="0" backgroundColor="#D7E8BE" contentBackgroundColor="#D7E8BE">
+			<s:List id="list_episodes" bottom="0" top="21" left="0" right="0" dataProvider="{http_KATG.lastResult.rss.channel.item}" itemRenderer="com.itemrenderers.Episodes" selectionColor="#000000"></s:List>
+			<s:Label x="0" y="5" text="Archive" fontSize="18" fontWeight="bold"/>
+			<s:ToggleButton buttonMode="true" useHandCursor="true" id="tbtn_backstage" enabled="false" y="0" label="Backstage Content" click="toggleEpisodes()" right="0" width="122"/>
+			<s:Button buttonMode="true" useHandCursor="true" id="btn_showPictures" enabled="false" y="0" label="Show Notes and Pictures" click="openShowPicturesWindow()" right="122"/>
+		</s:BorderContainer>
+		<s:BorderContainer width="45%" height="100%" minWidth="0" backgroundColor="#D7E8BE" contentBackgroundColor="#D7E8BE">
+			
+			<s:List id="list_queue" dataProvider="{downloadQueue}" itemRenderer="com.itemrenderers.Queue"  width="100%" top="28" bottom="0"/>
+			<mx:ProgressBar id="progress" mode="manual" width="100%" label=""  x="0" y="20" maximum="100"/>
+			<s:List id="list_downloads" transformX="{list_downloads.width}" transformY="{list_downloads.height/2}" bottom="0" top="20" left="0" right="0" labelField="title" itemRenderer="com.itemrenderers.Downloads" dataProvider="{Downloads}"   borderVisible="true"></s:List>
+			<s:Label x="0" y="5" text="Downloads" fontSize="18" fontWeight="bold"/>
+		</s:BorderContainer>
+		
+	</mx:HBox>
+	<s:Button y="0" label="x" click="visible=false" chromeColor="#098014" color="#FFFFFF" buttonMode="true" useHandCursor="true" horizontalCenter="0" width="28"/>
+	<s:Label x="9" y="5" text="Episodes" fontSize="14" fontWeight="bold"/>
+</mx:Canvas>

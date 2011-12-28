@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		   xmlns:s="library://ns.adobe.com/flex/spark" 
+		   xmlns:mx="library://ns.adobe.com/flex/mx"  creationComplete="creationComplete();" layout="absolute" 
+	width="400" height="290" backgroundColor="#6B6B6B" borderColor="#454545" showTitleBar="false"
+	alwaysInFront="true" showStatusBar="false" close="updateNow()"  type="{NativeWindowType.UTILITY}" resizable="false">
+	 
+	
+	<mx:Image x="10" y="10" source="@Embed(source='assets/images/UpdateIcon.png')"/>
+	
+	<mx:Label x="10" y="93" text="Release notes:" fontSize="12" color="#FFFFFF" fontWeight="normal" id="label1"/>
+	<mx:Text x="102" y="22" color="#FFFFFF" fontSize="12" id="txt_Version"/>
+	<mx:Text x="102" y="39" color="#FFFFFF" fontSize="12" id="txt_CurrentVersion"/>
+	<mx:TextArea y="120" height="101" color="#000000" borderColor="#7D7D7D" editable="false" enabled="true" id="txta_releaseNotes" left="10" right="10"/>
+	<mx:ProgressBar y="223" labelPlacement="left" color="#FFFFFF" fontWeight="normal" left="10" width="370" id="progress_download" mode="manual" label=" " visible="false"/>
+	
+	
+	 
+	
+	
+	
+	
+	
+	
+<fx:Script>
+	<![CDATA[
+		import flash.desktop.Updater;
+		import flash.events.Event;
+		import flash.events.IOErrorEvent;
+		import flash.net.URLStream;
+		
+		import mx.utils.StringUtil;
+		
+		
+		
+		private var urlString:String;
+		private var urlReq:URLRequest;
+		private var urlStream:URLStream;
+		private var fileData:ByteArray;
+
+
+		// the version of the installed application
+		public var VERSION:String = new String();
+		
+		// the latest version available
+		public var CurrentVersion:String = new String();
+
+		// the release notes
+		public var releaseNotes:String = new String();
+
+		// the latest version a user must manually upgrade from
+		public var ManualUpdateVersion:String = new String();
+		
+		// the URL with manual update instructions
+		public var ManualUpdateURL:String = new String();
+		
+		// boolean that indicates whether a manual re-install is required
+		public var ManualRequired:Boolean = new Boolean(false);
+		
+		private function creationComplete():void
+		{
+			
+			// update interface
+			txt_Version.text = "You are running version " + VERSION 
+			txt_CurrentVersion.text = "The latest version is " + CurrentVersion
+			
+			
+			if(VERSION == CurrentVersion)
+			{
+				// if there's no update available
+				currentState = "noUpdate";	
+			} else {
+				// if there is an update, go ahead and show the release notes
+				txta_releaseNotes.htmlText = releaseNotes;
+				
+				//updateNow();
+				//btn_updateNow.enabled = true
+			
+			}
+			
+			
+			
+		}
+		
+		
+		
+		
+		
+		private function updateNow():void
+		{
+			if(ManualRequired == true)
+			{
+				
+				mx.controls.Alert.show("You're using an old version that requires a special update procedure. You'll be taken to "+ManualUpdateURL+" for instructions on how to procede.", "A Manual Update is Required");
+				navigateToURL(new URLRequest(ManualUpdateURL));
+				return;
+			}
+			//btn_updateNow.enabled = false;
+			urlString = "http://apps.chalk-it-out.com/KATG/KATG-App.air"; 
+			urlReq = new URLRequest(urlString); 
+			urlStream = new URLStream(); 
+			fileData = new ByteArray(); 
+			urlStream.addEventListener(Event.COMPLETE, WriteAirFile);
+			urlStream.addEventListener(IOErrorEvent.IO_ERROR, function():void {
+				// do nothing.
+			});
+			urlStream.addEventListener(ProgressEvent.PROGRESS, downloadProgress);
+			urlStream.load(urlReq); 
+			progress_download.visible = true;
+			progress_download.label = "Downloading...";
+		}
+	
+		private function downloadProgress(event:ProgressEvent):void
+		{
+			//update download progress
+			progress_download.setProgress(event.bytesLoaded, event.bytesTotal);
+		}
+		 
+		private function WriteAirFile(event:Event):void 
+		{ 
+			
+			// write install file to disk
+			urlStream.readBytes(fileData, 0, urlStream.bytesAvailable);
+			
+		    var file:File = File.applicationStorageDirectory.resolvePath("KATG-App.air"); 
+		    var fileStream:FileStream = new FileStream(); 
+		    fileStream.open(file, FileMode.WRITE); 
+		    fileStream.writeBytes(fileData, 0, fileData.length); 
+		    fileStream.close(); 
+		    
+		    // update application
+		    var updater:Updater = new Updater(); 
+			updater.update(file, CurrentVersion);
+			
+		}
+		
+		
+	]]>
+</fx:Script>
+	<s:Button id="btn_updateNow" click="updateNow()" y="248" label="Install and Relaunch" horizontalCenter="0"/>
+	
+	
+	
+	
+</mx:Window>

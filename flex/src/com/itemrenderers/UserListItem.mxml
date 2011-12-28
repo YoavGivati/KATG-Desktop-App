@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" dataChange="dataChange();"
+				>
+	
+	<mx:Label text="{data.username}" fontWeight="bold" color="#083C72"/>
+	<mx:Button id="btn_Watch" label="Cam" fontWeight="bold" chromeColor="#083C72" color="#FFFFFF" fontSize="11" right="0" buttonMode="true" useHandCursor="true" click="parentDocument.parentDocument.WatchUser(data)" visible="false"/>
+	<fx:Script>
+		<![CDATA[
+			private function dataChange():void
+			{
+				if(data.webcam == "1")
+				{
+					btn_Watch.visible = true
+				} else {
+					btn_Watch.visible = false
+				}
+				
+			}
+		]]>
+	</fx:Script>
+</mx:Canvas>

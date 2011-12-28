@@ -1,0 +1,846 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/mx"  
+					   xmlns:comp="com.*" error="{trace('error...')}"
+					   showStatusBar="false" usePreloader="false" creationComplete="creationComplete();" width="650" height="550" backgroundColor="#258C2C" 
+					   backgroundAlpha="0.01" xmlns:com="com.*"  deactivate="toggleEnterFrame('remove')"
+					   activate="toggleEnterFrame('add')" mouseUp="moveApp(false)" closing="Closing()" 
+					   click="backgroundClick(event)">
+	<!--
+		TODO:
+		- add failed timer, so when an httpService fails it tries again more often then it usually would
+		until it successfully connects.
+	
+		- add Tweet buttons to liveshow window and audio player window
+	-->
+	
+	<fx:Style source="assets/styles/styles.css"/>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		<s:Sequence  id="rollOverScaleEffect" duration="300">
+			<s:Parallel>
+				<s:Scale scaleXTo="1.2" scaleYTo="1.2" autoCenterTransform="true" easer="{Elastic}" />
+				<mx:Blur blurXFrom="0" blurYFrom="0" blurXTo="20" blurYTo="0" duration="100"/>
+				
+			</s:Parallel>
+		</s:Sequence>
+		
+		<s:Sequence  id="rollOutScaleEffect" duration="300">
+			<s:Parallel>
+				<s:Scale scaleXTo="1" scaleYTo="1" autoCenterTransform="true" easer="{Elastic}"/>
+				<mx:Blur blurXTo="0" blurYTo="0"/>
+			</s:Parallel>
+		</s:Sequence>
+		
+		<s:Sequence id="statusShowEffect" duration="200">
+			<s:Scale scaleXTo="1.2" scaleYTo="1.2" autoCenterTransform="true" duration="10" />
+			<s:Scale scaleXTo="1" scaleYTo="1" autoCenterTransform="true" easer="{Elastic}"/>
+			<s:Parallel>
+				
+			</s:Parallel>
+		</s:Sequence>
+		
+		<s:Sequence id="AppStartEffect" duration="1000">
+			
+			<s:Parallel>
+				<s:Fade alphaFrom="0" alphaTo="1"/>
+				<mx:Blur blurXFrom="500" blurYFrom="-50"/>
+			</s:Parallel>
+		</s:Sequence>
+		
+		
+		
+		
+		
+		<s:Elastic id="Elastic" />
+		
+		<!-- Show Status -->
+		<s:HTTPService id="httpLastShow" result="httpLastShowResult()" url="http://app.keithandthegirl.com/Feed/Show/" fault="httpFault(event)" />
+		<s:HTTPService id="httpOnAir" result="httpOnAirResult()" url="http://app.keithandthegirl.com/Api/App/Feed/Live/" fault="httpFault(event)" />
+		<s:HTTPService id="http_Widget" result="http_WidgetResultEvent(event)" url="http://www.thegrundleonline.com/xml/KATGGadget.xml" fault="httpFault(event)"/>
+			
+		<!-- News -->
+		<s:HTTPService id="httpTwitterMain" url="http://search.twitter.com/search.rss?q=from:keithmalley+from:keithandthegirl" fault="httpFault(event)" />
+		<s:HTTPService id="httpTwitterCommunity" url="http://search.twitter.com/search.rss?q=from:keithmalley+OR+from:keithandthegirl+OR+@keithmalley+OR+@keithandthegirl+OR+%23katg+OR+%23whatdowedonow+OR+%23huar+OR+http://katg.com" fault="httpFault(event)" />
+		
+		<s:HTTPService id="httpForumsShite" fault="httpFault(event)">
+			<s:url>
+				<![CDATA[http://www.keithandthegirl.com/forums/external.php?type=RSS2&forumids=6]]>
+			</s:url>
+		</s:HTTPService>
+		<s:HTTPService id="httpForumsMain" url="http://www.keithandthegirl.com/forums/external.php?type=RSS2" fault="httpFault(event)" />
+		
+		<!-- Links -->
+		<s:HTTPService id="httpLinks" url="http://app.keithandthegirl.com/Api/App/Links.xml" fault="httpFault(event)" />
+		
+		
+		<!-- Episodes and Pictures -->
+		<s:HTTPService id="http_KATG" url="http://www.keithandthegirl.com/RSS/" method="GET"  fault="httpFault(event);" />	
+		<s:HTTPService id="http_Backstage" url="http://www.keithandthegirl.com/RSS/Backstage/" method="GET" fault="httpFault(event);" />
+		
+		<s:HTTPService id="http_CompactList" fault="httpFault(event)" url="http://app.keithandthegirl.com/Api/App/ShowArchive/ListCompact/"/>
+		<s:HTTPService id="http_Pictures" fault="httpFault(event)" method="POST" url="http://app.keithandthegirl.com/Api/App/ShowArchive/Show/Pictures/"/>
+		<s:HTTPService id="http_Details" fault="httpFault(event)" method="POST" url="http://app.keithandthegirl.com/Api/App/ShowArchive/Show/Details/"/>
+		
+		<!-- Update Check -->
+		<s:HTTPService id="http_VersionCheck"/>
+		<mx:HTTPService id="CheckForUpdates" url="http://apps.chalk-it-out.com/KATG/auto-update.php" method="GET" fault="netFaultHandler(event)" result="CheckForUpdatesResultHandler(event)" />
+	</fx:Declarations>
+	
+	
+	<fx:Script source="as/database.as"/>
+	<fx:Script source="as/update.as"/>
+	<fx:Script>
+		<![CDATA[
+			import com.AudioPlayer;
+			import com.ChatWindow;
+			import com.HistoryWindow;
+			import com.LiveShowWindow;
+			import com.LiveVideoWindow;
+			import com.NewsWindow;
+			import com.PSPWindow;
+			import com.PreferenceWindow;
+			import com.ShowPicturesWindow;
+			import com.Update;
+			import com.VideoPlayer;
+			
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.http.HTTPService;
+			/**                Version Check and Upgrade  	  **/
+			public var Version:String = new String("2.3.4"); 
+			public var LatestVersion:Number = new Number;
+			public var LatestFix:Number = new Number;
+			public var VersionInfo:String = new String;
+			public var FixInfo:String = new String;
+			
+			 
+			
+			
+			private function fnCreateUpdateRequest(event:Event = null):void {
+				
+				var params:Object = {};
+				params['Version'] = Version;
+				if(event != null) {
+					params['action'] = 'Checking for updates';	
+				}
+				
+				CheckForUpdates.send(params);
+			}
+			
+			
+			
+			
+			
+			
+			/**                !Version Check and Upgrade                          **/
+			
+			
+			
+			[Bindable]
+			private var yRotation:int = new int();
+			
+			[Bindable]
+			private var xRotation:int = new int();
+			
+			private var xMaxRotation:int = new int(45);
+			private var yMaxRotation:int = new int(45);
+			
+			private var refreshTimer:Timer = new Timer(60000); // 1 minute
+			private var midRefreshTimer:Timer = new Timer(300000); // 5 minutes
+			private var longRefreshTimer:Timer = new Timer(3600000); // 1 hour
+			
+			public var EpisodesDirectory:File = UserDirectory.resolvePath("Episodes");
+			
+			public function netFaultHandler(event:FaultEvent):void
+			{
+				// do nothing
+			}
+		
+			private function Closing():void
+			{
+				fnUpdatePref_WindowPosition();
+			}
+			
+			private function keyboardHandler(event:KeyboardEvent):void
+			{
+				// ctrl+r resets window position
+				if(event.ctrlKey == true){
+					if(event.keyCode == Keyboard.R)
+					{
+						nativeWindow.x = 0
+						nativeWindow.y = 0
+					}
+				}	
+			}
+			
+			private function creationComplete():void
+			{
+				
+				
+				
+				addEventListener(KeyboardEvent.KEY_DOWN, keyboardHandler);
+				this.setFocus()
+				UserDirectory.createDirectory();
+				EpisodesDirectory.createDirectory();
+				/** Trigger Create Database								 **/
+				fnCreateDatabase();
+				/** !Trigger Create Database							 **/			
+				/** Trigger Set Preferences								 **/
+				fnSelectPreferences();
+				/** !Trigger Set Preferences							 **/	
+				
+				// centre the app on screen 
+				nativeWindow.x = Preferences.x
+				nativeWindow.y = Preferences.y
+				nativeWindow.width = Capabilities.screenResolutionX
+				nativeWindow.height = Capabilities.screenResolutionY
+				interactiveGroup.transformX = interactiveGroup.width/2;
+				interactiveGroup.transformY = interactiveGroup.height/2;
+				interactiveGroup.transformZ = -20;
+				
+				toggleEnterFrame("add")
+				
+				/** Trigger Get Downloaded Episodes								 **/
+				
+				
+				episodesWindow.fnSelectEpisodes();
+				/** !Trigger Get Downloaded Episodes		**/
+				
+				// global data refresh timer
+				refreshTimer.addEventListener(TimerEvent.TIMER, onRefreshTimer);
+				midRefreshTimer.addEventListener(TimerEvent.TIMER, onMidRefreshTimer);
+				longRefreshTimer.addEventListener(TimerEvent.TIMER, onLongRefreshTimer);
+				
+				// get data
+				onRefreshTimer();
+				
+				httpLinks.send();
+				/** Trigger VersionCheck Request                         **/
+				fnCreateUpdateRequest();
+				/** !Trigger VersionCheck Request                        **/ 
+				
+				onMidRefreshTimer();
+				onLongRefreshTimer();
+				
+				
+				
+				
+				refreshTimer.start();
+				midRefreshTimer.start();
+				longRefreshTimer.start();
+				
+				
+				
+			}
+			
+			
+			
+			private function onRefreshTimer(event:TimerEvent = null):void
+			{
+				httpLastShow.send();
+				httpOnAir.send();
+				http_Widget.send();
+			}
+			
+			private function onMidRefreshTimer(event:TimerEvent = null):void
+			{
+				httpTwitterMain.send();
+				
+				var t1:Timer = new Timer(1000, 1);
+				t1.addEventListener(TimerEvent.TIMER, function():void{
+					httpTwitterCommunity.send();
+				});
+				
+				var t2:Timer = new Timer(2000, 1);
+				t2.addEventListener(TimerEvent.TIMER, function():void{
+					httpForumsMain.send();
+				});
+				
+				var t3:Timer = new Timer(3000, 1);
+				t3.addEventListener(TimerEvent.TIMER, function():void{
+					httpForumsShite.send();
+				});
+				
+				
+				
+				t1.start()
+				t2.start()
+				t3.start()
+				
+			}
+			
+			private function onLongRefreshTimer(event:TimerEvent = null):void
+			{
+				http_KATG.send();
+				http_Backstage.send();
+				http_CompactList.send();
+			}
+			
+			
+			public function toggleEnterFrame(s:String):void
+			{
+				if(Preferences.FollowMouse == true)
+				{
+					if(s == "add")
+					{
+						this.addEventListener(MouseEvent.MOUSE_MOVE, enterFrame);	
+					} else if (s == "remove") {
+						this.removeEventListener(MouseEvent.MOUSE_MOVE, enterFrame);
+					}
+				}
+				
+				if(s == "forceRemove")
+				{
+					this.removeEventListener(MouseEvent.MOUSE_MOVE, enterFrame);
+				}
+			}
+			
+			private function enterFrame(event:MouseEvent):void
+			{
+				if(Move == true)
+				{
+					
+					nativeWindow.x += (mouseX - (interactiveGroup.x + btn_moveApp.x + (btn_moveApp.width/2)))/4
+					nativeWindow.y += (mouseY - (interactiveGroup.y + btn_moveApp.y + (btn_moveApp.height/2)))/4
+					nativeWindow.x += (mouseX - (interactiveGroup.x + btn_moveApp.x + (btn_moveApp.width/2)))/4
+					nativeWindow.y += (mouseY - (interactiveGroup.y + btn_moveApp.y + (btn_moveApp.height/2)))/4
+					nativeWindow.x += (mouseX - (interactiveGroup.x + btn_moveApp.x + (btn_moveApp.width/2)))/4
+					nativeWindow.y += (mouseY - (interactiveGroup.y + btn_moveApp.y + (btn_moveApp.height/2)))/4
+					nativeWindow.x += (mouseX - (interactiveGroup.x + btn_moveApp.x + (btn_moveApp.width/2)))/4
+					nativeWindow.y += (mouseY - (interactiveGroup.y + btn_moveApp.y + (btn_moveApp.height/2)))/4
+					
+						
+					try
+					{
+						preferenceWindow.AppIsMoving(nativeWindow.x.toString(), nativeWindow.y.toString())
+					}catch(e:Error){}
+					return
+				}
+				
+				if(this.mouseY > 0 && this.mouseY < this.height)
+				{
+					// this formula is used to compute the rate at which it rotates to the left, based on mouse position
+					// changing the last divided-by value will alter it, a lower number will cause it to rotate faster
+					yRotation = -((((mouseX) - (interactiveGroup.x + (interactiveGroup.width)/2))/10));
+					
+					// this conditional will allow for changes when rotating to the right.
+					// due to z-positioning visual affects on y-rotation and altered math due to negative numbers, it lets you 
+					// have a separately calculated rate of rotation when rotating to the right
+					if(yRotation < 0)
+					{
+						yRotation /= 6
+					}
+					
+					if(yRotation > 0)
+					{
+						
+						yRotation *=1.8
+					}
+					
+					
+					// if someone has a huge screen, or for any other reason we want to limit the amount it can rotate
+					// to the left and right respectively, this will set a max.
+					if(yRotation > yMaxRotation+25) {
+						yRotation = yMaxRotation+25
+					}  else if(yRotation < -yMaxRotation+30) {
+						yRotation = -yMaxRotation+30
+					} 
+					
+					// this set's the computed yRotation
+					interactiveGroup.rotationY = yRotation;
+					
+					
+				} else {
+					
+					
+				}
+				
+				
+				//trace(this.mouseX + " - " + this.width)
+				if(this.mouseX > 0 && this.mouseX < this.width)
+				{
+					
+					xRotation = (((mouseY) - (interactiveGroup.y + (interactiveGroup.height)/2))/10);
+					if(xRotation > 0)
+					{
+						xRotation /= 1
+						
+					}
+					if(xRotation > xMaxRotation) {
+						xRotation = xMaxRotation
+					}  else if(xRotation < -xMaxRotation) {
+						xRotation = -xMaxRotation
+					} 
+					
+					interactiveGroup.rotationX = xRotation
+					interactiveGroup.rotationY += xRotation/4
+				} else {
+					
+				}
+				
+				
+				
+				
+				
+				
+				
+			}
+			
+			private function httpFault(error:FaultEvent):void
+			{
+				// do nothing	
+			}
+			
+			private function httpOnAirResult():void
+			{
+				if(httpOnAir.lastResult.root.OnAir == "1")
+				{
+					
+					img_SpeakerOn.visible = true;
+					img_SpeakerOff.visible = false;
+					lbl_nextLiveShow.text = "In Progress";
+					bc_nextShow.visible = true;
+					liveWindow.visible = true;
+					if(Preferences.AutoTuneIn == true)
+					{
+						// if the chat window is open, the user is already engaged in the live show,
+						// and/or is listening maybe switched to the ustream/cam audio.
+						// it's unlikely the user would want the audio feed to keep trying to move in.
+						if(!chatWindow || chatWindow.closed)
+						{
+							liveWindow.fnStartShoutcast()
+						}
+					}
+					if(Preferences.AutoLaunchChat == true)
+					{
+						if(!chatWindow || chatWindow.closed) {
+							chatWindow = new ChatWindow;
+							chatWindow.open();
+						} 
+					}
+				}
+				
+			}
+			
+			private function httpLastShowResult():void
+			{
+				var s:String = httpLastShow.lastResult.root.Show.Number + ": " + httpLastShow.lastResult.root.Show.Title;
+				// if a new show has been posted, show the banner
+				if(s != lbl_lastShow.text)
+				{
+					if(lbl_lastShow.text != s)
+					{
+						showLastShowStatus();
+					}
+					lbl_lastShow.text = s;
+					bc_lastShow.visible = true;
+				}
+			}
+			
+			
+			
+			private function showNextShow():void
+			{
+				bc_nextShow.visible = true
+			}
+			
+			private function hideNextShow():void
+			{
+				bc_nextShow.visible = false
+			}
+			
+			
+			private function showLastShowStatus():void
+			{
+				bc_lastShow.visible = true
+			}
+			
+			private function hideLastShowStatus():void
+			{
+				bc_lastShow.visible = false
+			}
+			
+			private function showNews():void
+			{
+				
+				newsWindow.visible = true;
+			}
+			
+			
+			
+			private function toggleLiveWindow():void
+			{
+					
+					if(liveWindow.visible == true)
+					{
+						liveWindow.visible = false;
+					} else {
+						liveWindow.visible = true;
+					}
+				
+			}
+			
+			public function toggleFeedbackWindow():void
+			{
+				
+				if(feedbackWindow.visible == true)
+				{
+					feedbackWindow.visible = false;
+				} else {
+					feedbackWindow.visible = true;
+				}
+				
+			}
+			
+			public function toggleEpisodesWindow():void
+			{
+				
+				if(episodesWindow.visible == true)
+				{
+					episodesWindow.visible = false;
+				} else {
+					episodesWindow.visible = true;
+				}
+				
+			}
+			
+			public var chatWindow:ChatWindow;
+			
+			public function openChatWindow():void
+			{
+				
+				if(!chatWindow || chatWindow.closed) {
+					chatWindow = new ChatWindow;
+					chatWindow.open();
+				} else {
+					chatWindow.open();
+					chatWindow.restore();
+					chatWindow.setFocus()
+				}
+			}
+			
+			public var pspWindow:PSPWindow;
+			
+			public function openPSPWindow():void
+			{
+				
+				if(!pspWindow || pspWindow.closed) {
+					pspWindow = new PSPWindow;
+					pspWindow.open();
+				} else {
+					pspWindow.open();
+					pspWindow.restore();
+					pspWindow.setFocus()
+				}
+			}
+			
+			public var historyWindow:HistoryWindow;
+			
+			public function openHistoryWindow():void
+			{
+				
+				if(!historyWindow || historyWindow.closed) {
+					historyWindow = new HistoryWindow;
+					historyWindow.open();
+				} else {
+					historyWindow.open();
+					historyWindow.restore();
+					historyWindow.setFocus()
+				}
+			}
+			
+			
+			
+			public var preferenceWindow:PreferenceWindow;
+			
+			[Bindable]
+			public var position:Point = new Point();
+			
+			public function openPreferenceWindow():void
+			{
+				
+				if(!preferenceWindow || preferenceWindow.closed) {
+					preferenceWindow = new PreferenceWindow;
+					preferenceWindow.conn = conn;
+					preferenceWindow.Preferences = Preferences;
+					preferenceWindow.toggleEnterFrame = toggleEnterFrame;
+					preferenceWindow.Version = Version; 
+					preferenceWindow.httpLinks = httpLinks;
+					position.x = nativeWindow.x
+					position.y = nativeWindow.y
+					preferenceWindow.position = position
+					preferenceWindow.moveWindowTo = moveWindowTo;
+					preferenceWindow.open();
+				} else {
+					preferenceWindow.open();
+					preferenceWindow.restore();
+					preferenceWindow.setFocus()
+				}
+			}
+			
+			public function moveWindowTo(x:int, y:int):void
+			{
+				nativeWindow.x = x
+				nativeWindow.y = y
+			}
+			
+			public var showPicturesWindow:ShowPicturesWindow;
+			
+			public function openShowPicturesWindow():void
+			{
+				
+				if(!showPicturesWindow || showPicturesWindow.closed) {
+					showPicturesWindow = new ShowPicturesWindow;
+					showPicturesWindow.http_CompactList = http_CompactList;
+					showPicturesWindow.http_Pictures = http_Pictures;
+					showPicturesWindow.http_Details = http_Details;
+					showPicturesWindow.SearchAddToDownloadQueue = episodesWindow.SearchAddToDownloadQueue
+					showPicturesWindow.open();
+				} else {
+					showPicturesWindow.open();
+					showPicturesWindow.restore();
+					showPicturesWindow.setFocus()
+				}
+			}
+			
+			public var audioPlayer:AudioPlayer;
+			public var videoPlayer:VideoPlayer;
+			
+			public function PlayEpisode(data:Object):void
+			{
+				if(data.enclosure)
+				{
+					data.type = data.enclosure.type
+					if(data.type == 'audio/mpeg'){
+						data.type = 'mp3';
+					} else if(data.type == 'video/mp4'){
+						data.type = 'm4v';
+					} else if(data.type == 'application/pdf'){
+						data.type = 'pdf';
+					}
+					data.type = '.'+data.type;
+				}
+				switch (data.type)
+				{
+					case ".mp3":
+						if(!audioPlayer || audioPlayer.closed) {
+							audioPlayer = new AudioPlayer;
+							audioPlayer.connAsync = connAsync;
+							audioPlayer.EpisodesDirectory = EpisodesDirectory;
+							audioPlayer.fnSelectEpisodes = episodesWindow.fnSelectEpisodes;
+							audioPlayer.Preferences = Preferences
+							audioPlayer.open();
+						} else {
+							audioPlayer.open();
+							audioPlayer.restore();
+							audioPlayer.setFocus()
+						}
+						
+						audioPlayer.loadMP3(data)
+						break;
+					
+					case ".m4v":
+						if(!videoPlayer || videoPlayer.closed) {
+							videoPlayer = new VideoPlayer();
+							videoPlayer.connAsync = connAsync;
+							videoPlayer.EpisodesDirectory = EpisodesDirectory;
+							videoPlayer.fnSelectEpisodes = episodesWindow.fnSelectEpisodes;
+							videoPlayer.open();
+						} else {
+							videoPlayer.open();
+							videoPlayer.restore();
+							videoPlayer.setFocus()
+						}
+						
+						videoPlayer.loadVideo(data)
+						break;
+						
+					case ".pdf":
+						if(data.enclosure)
+						{
+							navigateToURL(new URLRequest(data.enclosure.url))
+							
+						} else {
+							var pdfLocation:String = data.location;
+							var pdfType:String = data.type;
+							var pdfFile:File = EpisodesDirectory.resolvePath(pdfLocation+pdfType);
+							navigateToURL(new URLRequest(pdfFile.url));
+						}
+						break;
+					
+					default:
+						if(!audioPlayer || audioPlayer.closed) {
+							audioPlayer = new AudioPlayer;
+							audioPlayer.connAsync = connAsync;
+							audioPlayer.EpisodesDirectory = EpisodesDirectory;
+							audioPlayer.fnSelectEpisodes = episodesWindow.fnSelectEpisodes;
+							audioPlayer.Preferences = Preferences
+							audioPlayer.open();
+						} else {
+							audioPlayer.open();
+							audioPlayer.restore();
+							audioPlayer.setFocus()
+						}
+						
+						audioPlayer.loadMP3(data)
+						break;
+				}
+			}
+			
+			private var deleteEpisode:SQLStatement = new SQLStatement();
+			public function DeleteEpisode(data:Object):void
+			{
+				try{
+					if(audioPlayer.data.location == data.location)
+					{
+						audioPlayer.Unload(true)
+						audioPlayer.close();
+					}
+				} catch(e:Error){}
+				
+				try{
+					if(videoPlayer.data.location == data.location) {
+						videoPlayer.Player.stop();
+						videoPlayer.Player.source = '';
+						videoPlayer.close();
+					}
+				} catch(e:Error){}
+				
+				var file:File = EpisodesDirectory.resolvePath(data.location+data.type);
+
+				
+				
+				try{
+					file.deleteFile();
+				} catch (error:Error) {
+					
+				}
+				deleteEpisode.sqlConnection = connAsync;
+				deleteEpisode.addEventListener(SQLErrorEvent.ERROR, function():void{
+					trace('---+++--error')
+				});
+				deleteEpisode.addEventListener(SQLEvent.RESULT, function():void
+				{
+					episodesWindow.fnSelectEpisodes();
+				});
+				deleteEpisode.text =
+					'DELETE FROM episodes where title="'+data.title+'"';
+				
+				
+					deleteEpisode.execute();
+				
+				
+			}
+			
+			[Bindable]
+			public var Preferences:Object = new Object();
+			
+			private var selectPreferences:SQLStatement = new SQLStatement();
+			
+			public function fnSelectPreferences():void {
+				
+				trace("select prefernces")
+			//	trace('selectpreferences')
+				// called after preferences inserted into database.
+				selectPreferences.sqlConnection = conn;
+				selectPreferences.text =
+					"SELECT * FROM preferences";
+				
+				try{		
+					selectPreferences.execute();
+					//trace(Preferences.AutoTuneIn+"-"+selectPreferences.getResult().data[0].AutoTuneIn)
+					Preferences = selectPreferences.getResult().data[0];
+					//apply preferences to app
+					//Auto Tune In
+					 
+					feedbackWindow.html_Feedback.reload()
+					
+				} catch (error:SQLError) {
+					mx.controls.Alert.okLabel = 'No brumski!';
+					mx.controls.Alert.buttonWidth = 130;
+					mx.controls.Alert.show('Local KATG Database Error... \nThis is something to report about on the Forums\n Preferences Table', 'Brumski', 4|mx.controls.Alert.NONMODAL);
+				} finally {
+					trace("select preferences finally")
+				}
+				
+				
+				
+			}
+			
+			private var UpdatePreferences:SQLStatement = new SQLStatement()
+			
+			public function fnUpdatePref_Feedback():void {
+				trace("set FeedbackNAme: "+ Preferences.FeedbackName)
+				UpdatePreferences.sqlConnection = conn;
+				UpdatePreferences.text = "UPDATE preferences SET FeedbackName='"+Preferences.FeedbackName+"', FeedbackLocation='"+Preferences.FeedbackLocation+"'";
+				try{		
+					UpdatePreferences.execute();
+				} catch(error:SQLError) {
+					trace("update feedback in db: "+ error.details)
+				}
+				 
+			}
+			
+			public function fnUpdatePref_WindowPosition():void {
+				UpdatePreferences.sqlConnection = conn;
+				UpdatePreferences.text = "UPDATE preferences SET x='"+nativeWindow.x+"', y='"+nativeWindow.y+"'";
+				try{		
+					UpdatePreferences.execute();
+				} catch(error:SQLError) {
+					
+				}
+				
+			}
+			private var Move:Boolean = new Boolean(false);
+			
+			public function moveApp(move:Boolean = false):void
+			{
+				
+				Move = move
+			}
+			
+			
+			private function backgroundClick(e:MouseEvent):void
+			{
+				trace(e.target.parent.toString())
+				trace(this)
+				if(e.target.parent == this)
+				{
+					trace("orderToBack()")
+					this.nativeWindow.orderToBack()
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Script source="as/widget.as"/>
+	<fx:Script source="as/shoutcast.as"/>
+	
+	<s:Group id="interactiveGroup"  width="300" height="200" creationCompleteEffect="AppStartEffect" transformX="{interactiveGroup.width/2}" transformY="{interactiveGroup.height/2}" transformZ="-50" horizontalCenter="0" verticalCenter="0">
+		
+	<mx:Image source="@Embed(source='assets/images/MainLogo.png')"  horizontalCenter="0" verticalCenter="0"/>
+	<mx:Image useHandCursor="true" buttonMode="true" z="-20" source="@Embed(source='assets/images/News.png')" rollOverEffect="rollOverScaleEffect" rollOutEffect="rollOutScaleEffect" scaleContent="true" click="showNews()" horizontalCenter="-137" verticalCenter="-9"/>
+	<mx:Image useHandCursor="true" buttonMode="true" z="20" source="@Embed(source='assets/images/Info.png')" click="openPreferenceWindow()" rollOverEffect="rollOverScaleEffect" rollOutEffect="rollOutScaleEffect" scaleContent="true" horizontalCenter="82" verticalCenter="10"/>
+	<mx:Image useHandCursor="true" z="-20" rollOver="showLastShowStatus()" rollOut="hideLastShowStatus()" buttonMode="true" source="@Embed(source='assets/images/Ipod.png')" click="toggleEpisodesWindow()" rollOverEffect="rollOverScaleEffect" rollOutEffect="rollOutScaleEffect" scaleContent="true" horizontalCenter="4" verticalCenter="116"/>
+	<mx:Image useHandCursor="true" z="-20" rollOver="showNextShow()" rollOut="hideNextShow()" buttonMode="true" source="@Embed(source='assets/images/Speaker_Off.png')" click="toggleLiveWindow()" id="img_SpeakerOff" visible="true" rollOverEffect="rollOverScaleEffect" rollOutEffect="rollOutScaleEffect" scaleContent="true" horizontalCenter="106" verticalCenter="91"/>
+	<mx:Image useHandCursor="true" z="-50" rollOver="showNextShow()" rollOut="hideNextShow()" buttonMode="true" source="@Embed(source='assets/images/Speaker_On.png')" click="toggleLiveWindow()" id="img_SpeakerOn" visible="false" rollOverEffect="rollOverScaleEffect" rollOutEffect="rollOutScaleEffect" scaleContent="true" horizontalCenter="106" verticalCenter="91"/>
+	<s:BorderContainer id="bc_lastShow" showEffect="statusShowEffect" width="147" height="57" cornerRadius="5" chromeColor="#FFFFFF" focusColor="#FFFFFF" rollOverColor="#FFFFFF" borderColor="#000000" borderWeight="3" visible="false" horizontalCenter="-142" verticalCenter="116">
+		<s:Label id="lbl_lastShow"  y="0" fontWeight="bold" color="#000000" x="0" width="100%" height="100%" paddingLeft="2" paddingRight="2" verticalAlign="middle" fontSize="13" paddingTop="2" textAlign="center"/>
+	</s:BorderContainer>
+	<s:BorderContainer width="281" showEffect="statusShowEffect" height="64" cornerRadius="5" chromeColor="#FFFFFF" focusColor="#FFFFFF" rollOverColor="#FFFFFF" borderColor="#000000" borderWeight="3" id="bc_nextShow" horizontalCenter="19" verticalCenter="-131">
+		<s:Label y="2" color="#000000" fontWeight="bold" x="0" width="100%" height="50%" paddingLeft="2" paddingRight="2" verticalAlign="middle" fontSize="14" paddingTop="2" textAlign="center" id="lbl_nextLiveShow"/>
+		<s:Label y="20" color="#000000"  x="0" width="100%" height="50%" paddingLeft="2" paddingRight="2" verticalAlign="middle" fontSize="12" paddingTop="2" textAlign="center" id="lbl_nextLiveShowDescription"/>
+	</s:BorderContainer>
+	<comp:LiveShowWindow id="liveWindow"  toggleFeedbackWindow="{toggleFeedbackWindow}" openPSPWindow="{openPSPWindow}" openHistoryWindow="{openHistoryWindow}" openChatWindow="{openChatWindow}" visible="false" horizontalCenter="205" verticalCenter="10" z="-20"/>
+	
+	<s:Button label="x" click="this.close()" chromeColor="#098014" color="#FFFFFF" buttonMode="true" useHandCursor="true" horizontalCenter="143" width="28" verticalCenter="-81"/>
+	<s:Button label="-" click="this.minimize()" chromeColor="#098014" color="#FFFFFF" buttonMode="true" useHandCursor="true" horizontalCenter="112" width="28" verticalCenter="-81"/>
+	<s:Button id="btn_moveApp" label="‹›"  mouseDown="moveApp(true)" mouseUp="moveApp(false)" alpha="0.01" mouseOver="btn_moveApp.alpha = 1" mouseOut="btn_moveApp.alpha = 0.01"  chromeColor="#098014" color="#FFFFFF" buttonMode="true" useHandCursor="true" horizontalCenter="112" width="28" toolTip="Click and drag to move the app" verticalCenter="-57"/>
+	<comp:FeedbackWindow id="feedbackWindow" visible="false" horizontalCenter="250" verticalCenter="0" z="-50"/>
+	</s:Group>
+	
+	<comp:EpisodesWindow id="episodesWindow" orderToFront="{nativeWindow.orderToFront}" z="100" visible="false" StreamEpisode="{PlayEpisode}" openShowPicturesWindow="{openShowPicturesWindow}" http_KATG="{http_KATG}" http_Backstage="{http_Backstage}" EpisodesDirectory="{EpisodesDirectory}" conn="{conn}"  verticalCenter="160" horizontalCenter="45" />
+	<comp:NewsWindow id="newsWindow" z="100" visible="false" httpForumsMain="{httpForumsMain}" httpForumsShite="{httpForumsShite}" httpTwitterCommunity="{httpTwitterCommunity}" httpTwitterMain="{httpTwitterMain}" verticalCenter="160" horizontalCenter="45"/>
+</s:WindowedApplication>

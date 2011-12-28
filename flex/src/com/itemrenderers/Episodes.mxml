@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="true" dataChange="DataChange()" height="20" rollOver="btn_download.visible = true; btn_stream.visible = true"
+				rollOut="btn_download.visible = false; btn_stream.visible = false" width="100%">
+	<s:Label y="5" id="txt_title" height="10" color="#268E1F" text="{data.title}{length}{size}" width="100%"/>
+	<s:Button id="btn_download" click="parentDocument.parentDocument.AddToDownloadQueue(this.data)" buttonMode="true" fontWeight="bold" useHandCursor="true" label="Download" visible="false" right="0" height="20" width="250"/>
+	<s:Button id="btn_stream" click="parentDocument.parentDocument.StreamEpisode(this.data)" buttonMode="true" fontWeight="bold" useHandCursor="true" label="Stream" visible="false" height="20"  width="122"/>
+	<fx:Script>
+		<![CDATA[
+			[Bindable]
+			private var length:String = new String('');
+			[Bindable]
+			private var size:String = new String('');
+			[Bindable]
+			private var description:String = new String('');
+			
+			
+			private function DataChange():void {
+				
+				description = data.description
+				
+				
+				if(description != null)
+					description = description.replace("<br>", "");
+				
+				toolTip = description
+			
+				
+				txt_title.setStyle('color', '#268E1F');
+				btn_stream.label = "Stream"
+				
+				if(data.enclosure != null)
+				if(data.enclosure.length != null)
+					size = ' | '+(Math.ceil(data.enclosure.length / 1024 / 1024)).toString()+'MB';
+				
+				if(size == ' | 0MB') {
+					size = '';
+				}
+				
+				if(data.duration != null)
+				{
+					var h:int = 0
+					var m:int = 0
+					var hs:String = ""
+					var ms:String = ""
+					
+					h = (Math.floor(data.duration/60/60))
+					m = ((h*60) - (Math.floor(data.duration/60))) * -1
+					if(h != 0)
+					{
+						hs = h + "h:"
+					}
+					
+					if(m != 0)
+					{
+						if(m < 10)
+						{
+							ms = "0"
+						}
+						ms += m + "m"
+					}
+					
+					length = " | "+ hs + ms;
+				}
+				try{	
+					if(data.enclosure.type == 'video/mp4') {
+						txt_title.setStyle('color', '#b55711');
+					}				
+				} catch(error:Error) {
+					
+				}
+				
+				try{	
+					
+					if(data.enclosure.type == 'application/pdf') {
+						txt_title.setStyle('color', '#1600FF');
+						btn_stream.label = "View"
+					}
+				} catch(error:Error) {
+					
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	
+</s:ItemRenderer>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" creationComplete="createComplete()"
+			   xmlns:mx="library://ns.adobe.com/flex/mx" minWidth="180" minHeight="120" width="180" height="120">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			
+			[Bindable]
+			public var embedCode:String = new String();
+			
+			[Bindable]
+			public var controlsVisible = new Boolean(true);
+			
+			private function createComplete():void
+			{
+				
+				
+			}
+		]]>
+	</fx:Script>
+	<mx:HTML x="0" htmlText="{embedCode}" y="0" width="180" height="120" id="html"/>
+	<s:Button visible="{controlsVisible}" x="148" buttonMode="true" useHandCursor="true" alpha="0.2" mouseOver="btn_disconnect.alpha = 1.0" mouseOut="btn_disconnect.alpha = 0.2" chromeColor="#083C72" color="#FFFFFF" y="0" label="x" width="32" id="btn_disconnect" click="this.parent.removeChild(this)"/>
+	<s:Label visible="{controlsVisible}" id="lbl_username" text="{data.username}"  bottom="0" horizontalCenter="0" textAlign="center" color="#FFFFFF" fontWeight="bold" fontSize="9" alpha="0.5"/>
+</mx:Canvas>

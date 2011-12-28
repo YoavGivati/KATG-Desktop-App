@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Graphic version="1.0" viewHeight="600" viewWidth="600" d:locked="false" xmlns="http://ns.adobe.com/fxg/2008" xmlns:d="http://ns.adobe.com/fxg/2008/dt">
+  <BitmapGraphic width="600" height="600" source="@Embed('Interface.assets/images/Background.png')" repeat="false" d:userLabel="Background"/>
+</Graphic>

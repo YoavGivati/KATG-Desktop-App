@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:BorderContainer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" creationComplete="createComplete()"
+		  xmlns:mx="library://ns.adobe.com/flex/mx" width="216"  height="72"  borderColor="#FFFFFF" borderWeight="3" dropShadowVisible="false" cornerRadius="4" backgroundColor="#1E7F27">
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			public var toggleFeedbackWindow:Function;
+			public var openChatWindow:Function;
+			public var openHistoryWindow:Function;
+			public var openPSPWindow:Function;
+			
+			//shoutcast
+			// ActionScript file
+			import flash.events.IOErrorEvent;
+			import flash.media.Sound;
+			import flash.media.SoundChannel;
+			import flash.media.SoundTransform;
+			
+			
+			private function createComplete():void
+			{
+				
+			}
+			
+			
+			private var shout:Sound = new Sound;
+			private var shoutchannel:SoundChannel = new SoundChannel;
+			private var shout_url:URLRequest = new URLRequest('http://liveshow.keithandthegirl.com:8004/;');
+			public var shout_trans:SoundTransform = new SoundTransform(1, 0); 
+			private var shout_isPlaying:Boolean = new Boolean(false);
+			
+			
+			private function fnClickOnAIR():void {
+				if(btn_ShoutcastStart.visible == true){
+					fnStartShoutcast();
+				} else if(btn_ShoutcastStop.visible == true){
+					fnStopShoutcast();
+				}
+			}
+			
+			/* private function fnClickAutoTuneIn():void {
+				if(chkbox_AutoTuneIn.selected == true){
+					fnUpdatePref_AutoTuneIn(true);
+					if(img_OnAir.visible == true){
+						fnStartShoutcast();
+					} else if(img_OffAir.visible == true){
+						fnStopShoutcast();
+					}
+				} else {
+					fnUpdatePref_AutoTuneIn(false);
+				}
+				
+			} */
+			
+			public function fnStartShoutcast():void {
+				
+				if(shout_isPlaying == false) {
+					btn_ShoutcastStop.visible = true;
+					btn_ShoutcastStart.visible = false;
+					shout = new Sound;
+					shout.addEventListener(ProgressEvent.PROGRESS, onProgress);
+					shoutchannel = new SoundChannel;
+					shoutchannel.soundTransform.volume = hslide_ShoutcastVolume.value;
+					shout.load(shout_url, new SoundLoaderContext(4500, false));
+					shout_trans.volume = hslide_ShoutcastVolume.value;
+					shoutchannel.soundTransform = shout_trans;
+					shoutchannel = shout.play(0,0,shout_trans);
+					shout_isPlaying = true;
+					lbl_Status.text = "connecting"
+				}
+			}
+			
+			private function onProgress(event:ProgressEvent):void
+			{
+				lbl_Status.text = "playing"
+			}
+			
+			
+			public function fnStopShoutcast():void {
+				try{
+					shout.removeEventListener(ProgressEvent.PROGRESS, onProgress);
+
+					lbl_Status.text = "stopped"
+					btn_ShoutcastStart.visible = true;
+					btn_ShoutcastStop.visible = false;
+					
+					shoutchannel.stop();
+					shout.close();
+					shout_isPlaying = false;
+				} catch(error:Error) {
+					shout_isPlaying = false;	
+				}
+				
+			}
+			import mx.events.SliderEvent;
+			public function fnShoutcastVolume():void {
+				//s_trans = new SoundTransform;
+				shout_trans.volume = hslide_ShoutcastVolume.value;
+				shoutchannel.soundTransform = shout_trans;
+			}
+			
+		]]>
+	</fx:Script>
+	<s:Button x="0" y="25" buttonMode="true" useHandCursor="true" visible="false"  width="25" id="btn_ShoutcastStop" click="fnStopShoutcast()" skinClass="assets.skins.StopButtonSkin"/>
+	<s:Button x="0" y="25" buttonMode="true" useHandCursor="true" width="25" id="btn_ShoutcastStart" click="fnStartShoutcast()" skinClass="assets.skins.PlayButtonSkin"/>
+	<s:Label x="5" y="5" text="Audio Feed" fontWeight="bold" fontSize="14" color="#FFFFFF"/>
+	<s:Label x="28" y="38" text="Vol" fontSize="8" color="#ffffff"/>
+	<mx:HSlider x="20" y="18" buttonMode="true" useHandCursor="true" showTrackHighlight="true" value="1" thumbSkin="@Embed(source='/assets/images/Beer.png')" slideDuration="0" thumbDisabledSkin="@Embed(source='/assets/images/Beer_disabled.png')" snapInterval="0.1" thumbDrag="fnShoutcastVolume()" mouseUp="fnShoutcastVolume()" thumbRelease="fnShoutcastVolume()" showDataTip="false" id="hslide_ShoutcastVolume" maximum="1.5" width="66"/>
+	<s:Button y="25" buttonMode="true" useHandCursor="true" label="Chat" width="48" click="openChatWindow()" rightClick="navigateToURL(new URLRequest('http://keithandthegirl.com/chat'))" right="72"/>
+	<s:Button y="25" buttonMode="true" useHandCursor="true" label="Feedback" click="toggleFeedbackWindow()" rightClick="navigateToURL(new URLRequest('http://keithandthegirl.com/feedback'))"  right="0" width="73"/>
+	<s:Label x="5" y="53" id="lbl_Status" text="" color="#FFFFFF"/>
+	<s:Button y="0" buttonMode="true" useHandCursor="true" label="Feed Song History" toolTip="Last few songs played on the feed" click="openHistoryWindow()" right="0" width="120"/>
+	
+	
+	
+</s:BorderContainer>

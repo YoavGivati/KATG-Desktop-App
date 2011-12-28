@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Window xmlns:fx="http://ns.adobe.com/mxml/2009"  showStatusBar="false" title="KATG Desktop App version {Version}"
+		  xmlns:s="library://ns.adobe.com/flex/spark" creationComplete="createComplete()" visible="false"
+		  xmlns:mx="library://ns.adobe.com/flex/mx" width="296" height="400" minWidth="{width}" maxWidth="{width}" minHeight="{height}" maxHeight="{height}" backgroundColor="#878787" color="#FFFFFF" >
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.core.UIComponent;
+			import mx.rpc.http.HTTPService;
+			
+			import spark.components.Application;
+			import spark.components.WindowedApplication;
+			import spark.events.TrackBaseEvent;
+			
+			[Bindable]
+			public var position:Point = new Point;
+			
+			public var moveWindowTo:Function;
+			
+			private function createComplete():void
+			{
+				nativeWindow.x = (Screen.mainScreen.bounds.width/2) - (width/2) + 310
+				nativeWindow.y = (Screen.mainScreen.bounds.height/2) - (height/2)
+				this.visible = true;
+				chkbox_AutoTuneIn.selected = Preferences.AutoTuneIn
+				chkbox_AutoLaunchChat.selected = Preferences.AutoLaunchChat
+				chkbox_FollowMouse.selected = Preferences.FollowMouse
+				
+			}
+			
+			
+			public var conn:SQLConnection;
+			public var UpdatePreferences:SQLStatement = new SQLStatement()
+			
+			
+			public var Preferences:Object;
+			
+			[Bindable]
+			public var httpLinks:HTTPService;
+			
+			[Bindable]
+			public var Version:String;
+				
+			public function fnUpdateAutoTuneIn():void {
+				
+				var boo:Boolean = chkbox_AutoTuneIn.selected
+				
+				//don't have to specify WHERE becuase there's only one preference row.
+				UpdatePreferences.sqlConnection = conn;
+				UpdatePreferences.text = "UPDATE preferences SET AutoTuneIn="+boo;
+				try{		
+					UpdatePreferences.execute();
+				} catch(error:SQLError) {
+					return;
+				}
+				Preferences.AutoTuneIn = boo;
+				
+				
+			}
+			
+			public function fnUpdateAutoLaunchChat():void {
+				var boo:Boolean = chkbox_AutoLaunchChat.selected
+					trace("auto launch chat"+boo)
+				UpdatePreferences.sqlConnection = conn;
+				UpdatePreferences.text = "UPDATE preferences SET AutoLaunchChat="+boo;
+				try{		
+					UpdatePreferences.execute();
+				} catch(error:SQLError) {
+					trace(error.message)
+					return;
+				}
+				
+				Preferences.AutoLaunchChat = boo;
+				
+			}
+			
+			public var toggleEnterFrame:Function;
+			
+			
+			public function fnUpdateFollowMouse():void {
+				var boo:Boolean = chkbox_FollowMouse.selected
+				UpdatePreferences.sqlConnection = conn;
+				UpdatePreferences.text = "UPDATE preferences SET FollowMouse="+boo;
+				try{		
+					UpdatePreferences.execute();
+				} catch(error:SQLError) {
+					trace(error.message)
+					return;
+				}
+				
+				Preferences.FollowMouse = boo;
+				if(Preferences.FollowMouse == true)
+				{
+					toggleEnterFrame("add")	
+				} else {
+					toggleEnterFrame("forceRemove")
+				}
+				
+			}
+		
+			
+			public function AppIsMoving(x:String, y:String):void
+			{
+				txtin_x.text = x
+				txtin_y.text = y
+			}
+			
+
+			
+			
+			
+			
+			
+		]]>
+	</fx:Script>  
+	<s:Label x="9" y="10" text="Preferences" fontSize="14"/>
+	<mx:HRule y="157" right="10" left="10"/>
+	<s:CheckBox x="10" y="37" id="chkbox_AutoTuneIn" change="fnUpdateAutoTuneIn()" label="Auto tune into feed during live shows"/>
+	<s:CheckBox x="10" y="54" id="chkbox_AutoLaunchChat" change="fnUpdateAutoLaunchChat()" label="Auto open chat during live shows"/>
+	<s:CheckBox x="10" y="72" id="chkbox_FollowMouse" change="fnUpdateFollowMouse()" label="Enable rotate to follow mouse cursor"/>
+	<s:Button useHandCursor="true" buttonMode="true" horizontalCenter="0" y="130" label="Save changes" color="#000000" click="close();"/>
+	<mx:VBox width="98%" bottom="-34" horizontalCenter="0" top="185">
+		<s:Button useHandCursor="true" buttonMode="true" label="App Site" color="#000000" width="100%" toolTip="Download, FAQ, etc." click="navigateToURL(new URLRequest('http://whiteboard.chalk-it-out.com/katg_desktop/faq.php'))"/>
+		<s:Button useHandCursor="true" buttonMode="true" label="The App Forum Thread" toolTip="Help, feature requests, bug reports" color="#000000" width="100%" click="navigateToURL(new URLRequest('http://www.keithandthegirl.com/forums/f6/katg-desktop-app-2-0-a-15274'))"/>
+		<s:Button useHandCursor="true" buttonMode="true" toolTip="KeithAndTheGirl.com" label="Keith and the Girl" color="#000000" width="100%" click="navigateToURL(new URLRequest('http://keithandthegirl.com/'))"/>
+		
+		<mx:Repeater id="rep_links" dataProvider="{httpLinks.lastResult.root.Button}" width="100%" >
+			<s:Button useHandCursor="true" buttonMode="true" label="{rep_links.currentItem.Title}" click="navigateToURL(new URLRequest('event.currentTarget.getRepeaterItem().URL'))" color="#000000" width="100%"/>
+		</mx:Repeater>
+		
+		
+		
+	</mx:VBox>
+	<s:Label x="10" y="166" text="Links" fontSize="14"/>
+	<s:Label x="7" y="101" text="App position:"/>
+	<s:HGroup x="84" y="96" width="200" height="22">
+		<s:Label text="x:" fontWeight="bold" height="100%" verticalAlign="middle"/>
+		<s:TextInput height="100%" width="60" color="#000000" id="txtin_x" text="{position.x}" change="position.x = Number(txtin_x.text);moveWindowTo(txtin_x.text, position.y)"/>
+		<s:Label text="y:" fontWeight="bold" verticalAlign="middle" height="100%"/>
+		<s:TextInput height="100%" width="60" color="#000000" id="txtin_y" text="{position.y}" change="position.y = Number(txtin_y.text);moveWindowTo(position.x, txtin_y.text)"/>
+	</s:HGroup>
+</s:Window>

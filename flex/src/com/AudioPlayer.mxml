@@ -1,0 +1,424 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Window xmlns:fx="http://ns.adobe.com/mxml/2009"  showStatusBar="false" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" creationComplete="createComplete()" minWidth="250" minHeight="50"
+		  xmlns:mx="library://ns.adobe.com/flex/mx" width="308" height="78" closing="Unload()" backgroundColor="#4EBC68" color="#FFFFFF" maxHeight="78">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import spark.events.TrackBaseEvent;
+			public var Preferences:Object;
+			
+			private function createComplete():void
+			{
+				nativeWindow.x = (Screen.mainScreen.bounds.width/2) - (width/2) - 40
+				nativeWindow.y = (Screen.mainScreen.bounds.height/2) - (height/2) - 70
+					
+				hslide_Volume.value = Preferences.AudioPlayerVolume
+			}
+			
+			public function fnMillisecondsToTimeCountUp(time:Number):String {
+				
+				//calculate playtime from milliseconds
+				var h:Number = new Number(Math.floor(time/1000/60/60));
+				//minutes left shows total minutes left plus hours, 1h5m = 65mins
+				//so we subtract the amount of 60's added by the hours to get just minutes
+				var m:Number = new Number(Math.floor(time/1000/60)-(h*60));
+				//seconds left
+				var s:Number = new Number(Math.floor(time/1000)-(m*60));
+				
+				//create string variables
+				var hours:String;
+				var minutes:String;
+				var seconds:String
+				
+				//make sure minutes and seconds are always two digits
+				if(m.toString().length == 1) {
+					minutes = "0"+m;
+				} else {
+					minutes = m.toString();
+				}
+				
+				if(s.toString().length == 1) {
+					seconds = "0"+s;
+				} else {
+					seconds = s.toString();
+				}
+				//if hours or minutes are 0 we don't need to see them
+				if(h == 0) {
+					hours = '';
+					if(m == 0) {
+						minutes = '';
+					} else {
+						minutes = minutes+":";
+					}
+				} else {
+					hours = h+":"
+					minutes = minutes+":";
+				}
+				
+				// after 1 hour passes the seconds become 4 digits long
+				// the last two of those digits represent the actual seconds
+				seconds = seconds.slice(seconds.length-2, seconds.length);
+				return hours+minutes+seconds;
+				
+			}
+			
+			import flash.errors.IOError;
+			import flash.events.Event;
+			import flash.events.IOErrorEvent;
+			import flash.events.MouseEvent;
+			import flash.events.ProgressEvent;
+			import flash.events.TimerEvent;
+			import flash.media.Sound;
+			import flash.media.SoundChannel;
+			import flash.media.SoundMixer;
+			import flash.media.SoundTransform;
+			import flash.utils.Timer;
+			
+			import mx.controls.Alert;
+			import mx.events.SliderEvent;
+			import mx.events.VideoEvent;
+			
+			private var s:Sound;
+			private var sc:SoundChannel;
+			public var s_PausePosition:int = new int(0);
+			public var s_trans:SoundTransform = new SoundTransform(.5, 0); 
+			
+			[Bindable]
+			public var data:Object = new Object();
+			
+			public var EpisodesDirectory:File;
+			
+			public function Unload(deleting:Boolean = false):void
+			{
+				if(deleting == false)
+				{
+					// if not streaming
+					if(!data.enclosure)
+					{
+						data.position = 0;
+					
+						fnUpdateEpisodePosition(sc.position)
+					}
+				}
+				sc.stop();
+				s.removeEventListener(IOErrorEvent.IO_ERROR, fnIOError)
+				s.removeEventListener(Event.COMPLETE, Play)
+				removeEventListener(Event.ENTER_FRAME, fnSoundProgress);
+				if(data.enclosure)
+				{
+					s.close();
+				}
+			}
+			
+			public function loadMP3(d:Object):void
+			{
+				
+				btn_Play.enabled = false;
+				hslide_Position.enabled = false;
+				
+				// if streaming
+				if(data.enclosure)
+				{
+					s.close();	
+				}
+			
+				
+				if(btn_Pause.visible == true) {
+					Pause();
+					
+				} 
+				
+				data = d;
+				
+				
+				
+				
+				s = new Sound;
+				s.addEventListener(IOErrorEvent.IO_ERROR, fnIOError);
+				//s.addEventListener(ProgressEvent.PROGRESS, fnProgressEpisode);
+				sc = new SoundChannel;
+				sc.soundTransform.volume = hslide_Volume.value;
+				//sc.stop();
+				
+				// if not streaming
+				if(!data.enclosure)
+				{
+					var location:String = data.location;
+					var type:String = data.type;
+					var file:File = EpisodesDirectory.resolvePath(location+type);
+					//var fileStream:FileStream = new FileStream
+					
+					s.addEventListener(Event.COMPLETE, Play)
+				}
+				
+				// if streaming
+				if(data.enclosure)
+				{
+					progress_soundDownload.visible = true;
+					s.addEventListener(ProgressEvent.PROGRESS, soundDownloadProgress);
+					s.load(new URLRequest(data.enclosure.url))
+				} else {
+					progress_soundDownload.visible = false;
+					s.load(new URLRequest(file.url));
+				}
+				
+				s_trans.volume = Preferences.AudioPlayerVolume;
+				sc.soundTransform = s_trans;
+				
+				
+				
+				// if  streaming
+				if(data.enclosure)
+				{
+					trace('ENCLOSURE!!! ++++++')
+					data.length = data.duration
+					data.size = data.enclosure.length
+					data.position = 0
+					
+					var playtimer:Timer = new Timer(1200, 1);
+					playtimer.addEventListener(TimerEvent.TIMER, function():void {
+						Play()
+					});
+					playtimer.start(); 
+				}
+				
+		
+			}
+			
+			private function soundDownloadProgress(event:ProgressEvent):void
+			{
+				
+				progress_soundDownload.setProgress(event.bytesLoaded, data.size);
+			}
+			
+			private function fnIOError(error:IOErrorEvent):void {
+				Alert.okLabel = "No Brumski";
+				Alert.show("Couldn't find the actual file", 'Brumski');
+			}
+			
+			private function Play(e:Event = null):void
+			{
+				addEventListener(Event.ENTER_FRAME, fnSoundProgress);
+				btn_Play.enabled = true;
+				btn_Pause.visible = true;
+				btn_Play.visible = false;
+				hslide_Position.enabled = true;
+				
+				try{
+					/* currentEpisode['position'] = episodesWindow.list_downloads.selectedItem.position */
+					// if streaming
+					if(data.position == null)
+					{
+						data.position = 0;
+					}
+						
+						sc = s.play(data.position,0,s_trans);
+					
+				} catch(error:Error){Alert.show("Invalid Sound File, maybe it was deleted?");}
+								
+				//sc.addEventListener(Event.COMPLETE, fnSoundChannelComplete);
+			}
+			
+			public function Pause(updatepos:Boolean = true):void
+			{
+				if(updatepos == true) {
+					
+					
+					data.position = sc.position;
+					// if not streaming
+					if(!data.enclosure)
+					{
+						
+						fnUpdateEpisodePosition(sc.position)
+					}
+				} 
+				btn_Play.visible = true;
+				btn_Pause.visible = false;
+				
+				
+				try {
+					sc.stop();
+				} catch(err:Error) {}
+				removeEventListener(Event.ENTER_FRAME, fnSoundProgress);
+				
+				
+			}
+			
+			public function Stop():void {
+				btn_Play.visible = true;
+				btn_Pause.visible = false;
+				hslide_Position.enabled = false;
+				
+					
+					if(sc.position > 0 && sc.position < s.length) {
+						sc.stop();
+					}
+					//SoundMixer.stopAll();
+					
+					data.position = 0;
+					hslide_Position.value = 0;
+					// if not streaming
+					if(!data.enclosure)
+					{
+						
+						fnUpdateEpisodePosition(0);
+					}
+					
+					
+					/* episodesWindow.list_downloads.selectedItem.position = 0; */
+					/* try {
+					fnUpdateEpisodePosition(sc.position);
+					} catch(err:Error) {trace('stop error')}*/
+					removeEventListener(Event.ENTER_FRAME, fnSoundProgress);
+				
+					// if streaming
+					if(!data.enclosure)
+					{
+						Unload()
+					}
+				
+				
+			}
+
+			
+			public function fnSoundProgress(event:Event):void {
+				if(!isDragging)
+				{
+					hslide_Position.maximum = s.length;
+					hslide_Position.value = sc.position
+					txt_Time.text = "["+ fnMillisecondsToTimeCountUp(sc.position) +" of "+ fnMillisecondsToTimeCountUp(s.length) +"]";
+					
+					if ( btn_Pause.visible == true && s.length - sc.position - 100 <= 0) {
+						//when an episode finishes
+						if(!data.enclosure)
+						{
+							Stop()
+						} else {
+							if(s.length == data.length)
+							{
+								Stop()
+							}
+						}
+						
+						
+					}
+				}
+				
+				//trace(playbackPercent.toString()+' - '+estimatedLength.toString()+' - '+s.length+' - '+sc.position);
+				
+			}
+			
+			public function fnVolume():void {
+				//s_trans = new SoundTransform;
+				s_trans.volume = hslide_Volume.value;
+				
+				sc.soundTransform = s_trans;
+				//s_trans.volume = event.value;
+				
+				
+			}
+			
+			public function fnScrub():void {
+				// if streaming
+				
+				
+				data.position = hslide_Position.value;
+				sc.stop();
+				
+				Play();
+				
+				
+			}
+			
+			
+
+			
+			
+			public var connAsync:SQLConnection;
+			public var Update_EpisodePosition:SQLStatement = new SQLStatement()
+			
+			public var fnSelectEpisodes:Function;
+				
+				
+			public function fnUpdateEpisodePosition(position:int):void {
+				trace("updating position: "+position)
+				
+				Update_EpisodePosition.sqlConnection = connAsync;
+				Update_EpisodePosition.text = "UPDATE episodes SET position="+position+" WHERE title='"+data.title+"'";
+				Update_EpisodePosition.addEventListener(SQLErrorEvent.ERROR, fnUpdate_EpisodePositionError);
+				Update_EpisodePosition.addEventListener(SQLEvent.RESULT, fnUpdateEpisodePositionResult);
+				
+				Update_EpisodePosition.execute();
+				
+				
+			}
+			
+			private function fnUpdate_EpisodePositionError(error:SQLErrorEvent):void {
+				trace('error updating episode position')
+			}
+			
+			
+			private function fnUpdateEpisodePositionResult(event:SQLEvent):void {
+				fnSelectEpisodes()
+				
+				trace('episode position update success')	
+			}
+			
+			
+			public var Update_AudioPlayerVolume:SQLStatement = new SQLStatement()
+
+			public function fnUpdateAudioPlayerVolume():void {
+				
+				Update_AudioPlayerVolume.sqlConnection = connAsync;
+				Update_AudioPlayerVolume.text = "Update preferences SET AudioPlayerVolume="+hslide_Volume.value;
+				Update_AudioPlayerVolume.addEventListener(SQLErrorEvent.ERROR, fnUpdate_AudioPlayerVolumeError);
+				Update_AudioPlayerVolume.addEventListener(SQLEvent.RESULT, fnUpdateAudioPlayerVolumeResult);
+				trace("========"+hslide_Volume.value)
+				Update_AudioPlayerVolume.execute();
+				Preferences.AudioPlayerVolume = hslide_Volume.value;
+				
+				
+			}
+			
+			private function fnUpdate_AudioPlayerVolumeError(error:SQLErrorEvent):void {
+				trace('error updating episode vol')
+			}
+			
+			
+			private function fnUpdateAudioPlayerVolumeResult(event:SQLEvent):void {
+				
+				
+				trace('episode vol update success')	
+			}
+			
+			
+			private function StayOnTopToggle():void
+			{
+				this.alwaysInFront = chkbox_StayOnTop.selected
+			}
+			
+			private var isDragging:Boolean = false;
+			
+		]]>
+	</fx:Script>  
+	<mx:Image x="92" y="1" source="@Embed(source='assets/images/MainLogo.png')" alpha="0.2"/>
+	<s:CheckBox y="0" label="Stay on top" click="StayOnTopToggle()" id="chkbox_StayOnTop" right="0" fontWeight="bold" textDecoration="none" lineThrough="false" fontSize="10" useHandCursor="true" buttonMode="true"/>
+	<s:Label y="43" id="txt_Time" color="#CCCCCC" right="10" fontSize="8"/>
+	<s:Button x="10" y="7" buttonMode="true" useHandCursor="true" id="btn_Play" click="Play()" color="#000000" width="48" skinClass="assets.skins.PlayButtonSkin"/>
+	<s:Button x="10" y="7" buttonMode="true" useHandCursor="true" visible="false" click="Pause()" id="btn_Pause" width="48" color="#000000" skinClass="assets.skins.PauseButtonSkin"/>
+	<s:Button x="61" y="7" buttonMode="true" useHandCursor="true" id="btn_Stop" click="Stop()" color="#000000" width="48" skinClass="assets.skins.StopButtonSkin"/>
+	<s:RichText y="50" id="txt_Title" text="{data.title}" fontSize="14" fontWeight="bold" left="11" right="9" lineHeight="15"/>
+	<s:Label x="122" y="20" text="Vol" fontSize="8"/>
+	<mx:HSlider x="115" y="3" maximum="1.5" snapInterval="0.1" value="1" id="hslide_Volume" mouseDown="fnVolume()" mouseUp="if(!data.enclosure){fnUpdateAudioPlayerVolume();}" slideDuration="0" liveDragging="true" thumbDrag="fnVolume()" thumbSkin="@Embed(source='/assets/images/Beer.png')" thumbDisabledSkin="@Embed(source='/assets/images/Beer_disabled.png')" width="51" chromeColor="#1DC510" showTrackHighlight="true" showDataTip="false" useHandCursor="true" buttonMode="true" enabled="true"/>
+	<mx:ProgressBar y="31" mode="manual" id="progress_soundDownload" chromeColor="#089B35" maximum="10" minimum="0" label=" " left="10" right="10"/>
+	<mx:HSlider y="23" id="hslide_Position" mouseDown="{isDragging=true}{fnScrub()}" mouseUp="isDragging=false" slideDuration="0" thumbRelease="fnScrub()" right="5" left="5"   thumbSkin="@Embed(source='/assets/images/Beer.png')" thumbDisabledSkin="@Embed(source='/assets/images/Beer_disabled.png')" chromeColor="#1DC510" showTrackHighlight="true" showDataTip="false" useHandCursor="true" buttonMode="true" value="1" maximum="100"/>
+	
+	
+	
+	
+	
+</s:Window>

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Window xmlns:fx="http://ns.adobe.com/mxml/2009"  showStatusBar="false" systemChrome="none"
+		  xmlns:s="library://ns.adobe.com/flex/spark" creationComplete="createComplete()" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" xmlns:local="*" width="1000" height="650" backgroundColor="#D7E8BE"   >
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.HTTPService;
+			
+			
+			private function createComplete():void
+			{
+				
+				nativeWindow.x = (Screen.mainScreen.bounds.width/2) - (width/2) 
+				nativeWindow.y = (Screen.mainScreen.bounds.height/2) - (height/2)
+				
+				http_Pictures.addEventListener(ResultEvent.RESULT, onPicturesResult);
+				http_Details.addEventListener(ResultEvent.RESULT, onDetailsResult);
+				itemClick();
+			}
+			
+			private function onDetailsResult(event:ResultEvent):void
+			{
+				btn_ForumThread.enabled = true
+				btn_Download.enabled = true
+			}
+			
+			private function onPicturesResult(event:ResultEvent):void
+			{
+				try
+				{
+					shelf.dataProvider = http_Pictures.lastResult.root.picture
+				} catch(e:Error) {}
+				txta_notes.text = ''
+				if(list_shows.selectedItem.T != null)
+				{
+					txta_notes.text += "Title:\r\n"+ list_shows.selectedItem.T 
+				}
+				if(list_shows.selectedItem.G != null)
+				{
+					txta_notes.text += "\r\n\rGuests:\r\n"+ list_shows.selectedItem.G
+				}
+				try
+				{
+					if(http_Details.lastResult.root.Detail != null)
+					{
+						txta_notes.text += "\r\n\rNotes:\r\n" + http_Details.lastResult.root.Detail
+					}
+				}catch(e:Error){}
+			}
+			
+			private function goToForumThread():void
+			{
+				
+				try{
+					if(http_Details.lastResult.root.ForumThread)
+					{
+						navigateToURL(new URLRequest("http://www.keithandthegirl.com/forums/showthread.php?t="+http_Details.lastResult.root.ForumThread))
+					}
+				} catch(e:Error){}
+			}
+			
+			public var SearchAddToDownloadQueue:Function;
+			
+			private function downloadEpisode():void
+			{
+				trace('dowanlo epi')
+				try{
+					if(http_Details.lastResult.root.FileUrl)
+					{
+						var s:String = http_Details.lastResult.root.FileUrl
+						s = s.replace("/katgtv/", "/shitecom/")
+			
+						SearchAddToDownloadQueue(s)
+					}
+				} catch(e:Error){trace('downloadesaajsf error')}
+			}
+			
+			[Bindable]
+			public var http_CompactList:HTTPService;
+			
+			[Bindable]
+			public var http_Pictures:HTTPService;
+			
+			[Bindable]
+			public var http_Details:HTTPService;
+			
+			private var clearAC:ArrayCollection = new ArrayCollection()
+			
+			public function itemClick():void
+			{
+				shelf.dataProvider = clearAC;
+				
+				btn_ForumThread.enabled = false
+				btn_Download.enabled = false
+				if(list_shows.selectedItem)
+				{
+					var params:Object = new Object()
+					params.ShowID = list_shows.selectedItem.I
+					http_Pictures.send(params);
+					http_Details.send(params);
+				} else {
+					try
+					{
+						list_shows.selectedIndex = 0
+						itemClick();	
+					} catch(e:Error){}
+				}
+				shelf.setFocus()
+			}
+			
+			
+			
+		]]>
+	</fx:Script>  
+	
+	
+	<s:BorderContainer left="0" top="0" bottom="0" right="0" borderColor="#000000" borderWeight="4" cornerRadius="4">
+	</s:BorderContainer>
+	<local:DisplayShelf id="shelf" itemRenderer="com.itemrenderers.basicFoto" 
+						borderThickness="0" angle="0" popout=".83"  enableHistory="false"
+						left="210" right="10" resizeEffect="Blur" bottom="-20" top="-15"/>
+	<s:List x="10" width="275" selectionColor="#000000" itemRenderer="com.itemrenderers.CompactList"   top="25" bottom="270" id="list_shows" dataProvider="{http_CompactList.lastResult.root.S}" fontWeight="bold" buttonMode="true" useHandCursor="true"></s:List>
+	<s:Button buttonMode="true" useHandCursor="true" label="x" click="close()" chromeColor="#098014" color="#FFFFFF" horizontalCenter="0" width="28" height="18" y="3"/>
+	<s:TextArea left="10" id="txta_notes" fontSize="10" width="275" bottom="10" height="240" />
+	<s:Button buttonMode="true" useHandCursor="true" id="btn_ForumThread" enabled="false" x="10" y="380" label="Forum Thread" click="goToForumThread()" width="140"/>
+	<s:Button buttonMode="true" useHandCursor="true" id="btn_Download" enabled="false" y="380" label="Download" click="downloadEpisode()" width="136" right="715"/>
+	<s:Label x="10" y="7" text="Show Notes and Pictures" fontSize="14" color="#000000" fontWeight="bold"/>
+	
+
+</s:Window>

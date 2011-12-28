@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Window xmlns:fx="http://ns.adobe.com/mxml/2009"  showStatusBar="false" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" creationComplete="createComplete()"
+		  xmlns:mx="library://ns.adobe.com/flex/mx" width="740" height="600" closing="Closing(event)">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			
+			private var timer:Timer = new Timer(1200, 1)
+			/* 	private var timer2:Timer = new Timer(600, 10); */
+			
+			private function Closing(event:Event):void {
+				if(timer.currentCount == 0) {
+					event.preventDefault(); 
+				} 
+				try {
+					html_Chat.htmlLoader.window.FrameChat.Disconnect();
+				} catch(error:Error){
+					
+				}
+				timer.addEventListener(TimerEvent.TIMER, fnTimer);
+				timer.start();
+				
+				
+				
+			}
+			
+			private function fnTimer(e:TimerEvent):void {
+				html_Chat.htmlLoader.loadString('');
+				this.close();
+			}
+			
+			
+			
+			
+			
+			private function createComplete():void
+			{
+				nativeWindow.x = (Screen.mainScreen.bounds.width/2) - (width/2)
+				nativeWindow.y = (Screen.mainScreen.bounds.height/2) - (height/2)
+				
+				
+			}
+			private function htmlCreationComplete():void
+			{
+				var hHost = new MyHTMLHost()
+				html_Chat.htmlHost = hHost
+				html_Chat.htmlLoader.cacheResponse = true
+				html_Chat.location="http://keithandthegirl.com/chat"
+				
+			}
+		]]>
+	</fx:Script>
+	
+	<mx:HTML id="html_Chat" creationComplete="htmlCreationComplete()"   left="0" top="0" bottom="0" right="0"/>
+</s:Window>

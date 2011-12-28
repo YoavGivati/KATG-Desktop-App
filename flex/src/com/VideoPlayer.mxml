@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Window xmlns:fx="http://ns.adobe.com/mxml/2009"  showStatusBar="false" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" creationComplete="createComplete()" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" width="640" height="360" closing="unload()"  >
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			public var EpisodesDirectory:File;
+			public var fnSelectEpisodes:Function;
+			public var connAsync:SQLConnection;
+			
+			private function createComplete():void
+			{
+				nativeWindow.x = (Screen.mainScreen.bounds.width/2) - (width/2)
+				nativeWindow.y = (Screen.mainScreen.bounds.height/2) - (height/2)
+				Player.play();
+			}
+			
+			private function unload():void
+			{
+				Player.stop();
+				Player.source = ""
+			}
+			[Bindable]
+			public var data:Object
+			
+			public function loadVideo(DATA:Object):void
+			{
+				
+				
+				data = DATA
+				
+				if(!data.enclosure)
+				{
+				var file:File = EpisodesDirectory.resolvePath(data.location+data.type);
+				Player.source = file.url
+				} else {
+					Player.source = data.enclosure.url
+				}
+				
+			}
+			
+			
+		]]>
+	</fx:Script>  
+	<s:VideoPlayer id="Player"  scaleMode="letterbox" left="0" right="0" top="0" bottom="0"/>
+	
+	
+	
+</s:Window>

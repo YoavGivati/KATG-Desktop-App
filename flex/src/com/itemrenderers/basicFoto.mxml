@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:fx="http://ns.adobe.com/mxml/2009" buttonMode="true" useHandCursor="true"  xmlns:s="library://ns.adobe.com/flex/spark" xmlns:mx="library://ns.adobe.com/flex/mx"  dataChange="dataChange()"  verticalScrollPolicy="off" horizontalScrollPolicy="off" backgroundColor="#000000">
+
+
+		<mx:Image id="largeimage"  smoothBitmapContent="true"   scaleContent="true"  horizontalCenter="0" verticalCenter="0"  completeEffect="Fade" dataChange="largeimageDataChange()" progress="progress(event)" complete="Complete()" creationComplete="creationComplete()"  />
+	
+	<mx:TextArea visible="true"  id="messageText" mouseOver="messageText.alpha = 0.2" mouseOut="messageText.alpha = 1" text="{data.title}" width="400" horizontalCenter="0" bottom="0" left="0" height="20"  textAlign="center" fontSize="12" fontWeight="bold"  editable="false" selectable="false"/>
+	
+	
+	<fx:Script>
+		<![CDATA[
+				
+			[Bindable]
+			public var isCurrentItem:Boolean = new Boolean(true);
+			
+			
+			
+			[Bindable]
+			public var isInfoVisible:Boolean = new Boolean(false);
+			
+			[Bindable]
+			public var username:String = new String();
+			[Bindable]
+			public var message:String = new String();
+			
+			
+			private function creationComplete():void
+			{
+				largeimage.source = String(data.url).replace("-Thumb", ""); 
+					
+			}
+			
+			private function dataChange():void
+			{
+				
+			
+				
+				
+				
+				
+				try {
+					
+				} catch(e:Error){}
+				
+				
+			}
+			
+			private function imageDataChange():void
+			{
+				
+			}
+			
+			private function largeimageDataChange():void
+			{
+			}
+			
+			private function progress(event:ProgressEvent):void
+			{
+			}
+			
+			private function largeComplete():void
+			{
+				
+			}
+			
+			private function Complete():void
+			{
+				sizeLargeImage()
+				
+			
+			}
+			
+			private function sizeLargeImage():void
+			{
+				trace("--=-=-=-=-=-"+largeimage.contentWidth)
+				var ratio:int = new int(1)
+				var ratioS:String = new String('')
+					
+				if(largeimage.contentWidth > largeimage.contentHeight)
+				{
+					ratioS = "wide"
+				} else if(largeimage.contentWidth < largeimage.contentHeight)
+				{
+					ratioS = "high"
+				} else {
+					ratioS = "square"
+				}
+				
+				if(ratioS == "wide" && largeimage.contentWidth > 615)
+				{
+					largeimage.width = 615
+					largeimage.height = largeimage.contentHeight / (largeimage.contentWidth/largeimage.width)
+				}
+				
+				if(ratioS == "high" && largeimage.contentHeight > 615)
+				{
+					largeimage.height = 615
+					largeimage.width = largeimage.contentWidth / (largeimage.contentHeight/largeimage.height)
+				}
+				
+				if(ratioS == "square" && largeimage.contentHeight > 615)
+				{
+					largeimage.height = 615
+					largeimage.width = 615
+				}
+				
+				trace(largeimage.height +"\/"+largeimage.width)
+				if(largeimage.height < 615)
+				{
+					//largeimage.height = largeimage.contentHeight
+					largeimage.y = (height-largeimage.height)/2
+				}
+				
+				if(largeimage.width < 615)
+				{
+					//largeimage.width = largeimage.contentWidth
+					largeimage.x = (width-largeimage.width)/2
+				}
+				/* 
+				largeimage.scaleContent = true */
+				
+				/* largeimage.x = (imageCanvas.width/2) - (largeimage.width/2)
+				largeimage.y = (imageCanvas.height/2) - (largeimage.height/2) */
+				/*
+				largeimage.height = data.height
+					smallimage.height = data.height
+				largeimage.width = data.width
+					smallimage.width = data.width
+				trace(data.width + 'hello' +data.height)
+				*/
+				
+			}
+			
+			private function showInfo(event:TimerEvent = null):void
+			{
+				
+				if(isCurrentItem)
+				{
+					isInfoVisible = true
+					
+				}
+				
+			}
+			
+			
+			public function hideInfo(event:TimerEvent = null):void
+			{
+				
+				isInfoVisible = false
+			}
+			
+		]]>
+	</fx:Script>
+	
+	
+</mx:Canvas>
+

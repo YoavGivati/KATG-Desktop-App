@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:BorderContainer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" width="339"  height="214" creationComplete="createComplete()" borderColor="#FFFFFF" borderWeight="4" cornerRadius="4" backgroundColor="#FFFFFF">
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			
+			private var FeedbackName:String = new String();
+			private var FeedbackLocation:String = new String();
+			
+			private function createComplete():void
+			{
+				x = (Screen.mainScreen.bounds.width/2) - (width/2)
+				y = (Screen.mainScreen.bounds.height/2) - (height/2)
+			}
+			
+			private function FeedbackComplete():void {
+				//feedback loads sudo feedback page on my site css customized for the app
+				html_Feedback.visible = true; 
+				trace("feedback complete")
+				if(!html_Feedback.htmlLoader.window.katg) {
+					trace("feedback katg")
+					//checks to see if the custom tag id katg is there, if it isn't you've been redirected to an error/success page
+					//we want it to be redirected back to my site.
+					//but first we want to grab the error or success messages and pass them on to the user.
+					if(html_Feedback.htmlLoader.window.LabelErrorMessage) {
+						trace("feedback error message")
+						lbl_FeedbackMessage.text = html_Feedback.htmlLoader.window.LabelErrorMessage.innerHTML.replace('<br>', '. ');
+						lbl_FeedbackMessage.text = lbl_FeedbackMessage.text.replace('<br>', '. ');	
+						parentDocument.Preferences.FeedbackName = html_Feedback.htmlLoader.window.Name.value;
+						parentDocument.Preferences.FeedbackLocation = html_Feedback.htmlLoader.window.Location.value;
+						try{
+							parentDocument.fnUpdatePref_Feedback();
+							
+						} catch (error:Error) {
+							trace("error"+error.message)
+						}
+					} 
+					html_Feedback.visible = false; 
+					html_Feedback.location= 'app:/feedback.html';
+				} else {
+					html_Feedback.htmlLoader.window.Name.value = parentDocument.Preferences.FeedbackName as String;
+					html_Feedback.htmlLoader.window.Location.value = parentDocument.Preferences.FeedbackLocation as String;
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<mx:HTML id="html_Feedback" height="168" width="284"  complete="FeedbackComplete()"  color="#268E1F" paintsDefaultBackground="false" borderStyle="outset" horizontalScrollPolicy="off" verticalScrollPolicy="off" paddingTop="8" borderColor="#599701" fontSize="11" y="18" x="25" contentBackgroundColor="#1CA04B">
+		
+		<mx:location><![CDATA[app:/feedback.html]]></mx:location>
+	</mx:HTML>
+	
+	<mx:Label color="#20A533" fontWeight="bold" id="lbl_FeedbackMessage" fontSize="10" text="Send Feedback during Liveshows" x="26" y="189"/>
+	<s:Button x="-4" label="x" click="visible = false" width="28" verticalCenter="0" chromeColor="#098014" color="#FFFFFF" buttonMode="true" useHandCursor="true"/>
+	<s:Label x="26" y="1" text="Feedback" fontSize="14"/>
+	
+</s:BorderContainer>

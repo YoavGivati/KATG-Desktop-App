@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" title="There's a new version of KATG Desktop" type="utility" layout="absolute" width="390" height="300" backgroundColor="#FFFFFF" color="#000000">
+<mx:Script>
+	<![CDATA[
+		[Bindable]
+		public var CurrentVersion:String;
+		[Bindable]
+		public var LatestVersion:String;
+		[Bindable]
+		public var VersionInfo:String;
+	]]>
+</mx:Script>
+	<mx:TextArea x="10" y="61" width="368" height="196" id="txt_VersionInfo" wordWrap="true" htmlText="{VersionInfo}" contentBackgroundColor="#E3EDD4" color="#000000"/>
+	<mx:Label x="14" y="10" text="You have version:" fontWeight="normal" fontStyle="normal"  fontSize="11" />
+	<mx:Label x="14" y="24" text="The latest version is:" fontWeight="normal" fontStyle="normal"  fontSize="11"/>
+	<mx:Label x="10" y="47" text="What's new?" fontWeight="normal" fontStyle="normal" textDecoration="underline" />
+	<mx:Label x="138" y="10.9" id="txt_CurrentVersion" text="{CurrentVersion}" />
+	<mx:Label x="138" y="24.9" id="txt_LatestVersion" text="{LatestVersion}" />
+	<mx:Button x="10" y="265" label="Grab the update" width="115" fontSize="9" click="navigateToURL(new URLRequest('http://innovate.chalk-it-out.com/katg_desktop/download.php'));"/>
+	<mx:Button x="127" y="265" label="Procrastinate" fontSize="9" click="this.close();"/>
+	<mx:Button y="265" label="Visit the forums" width="115" x="202" fontSize="9" click="{navigateToURL(new URLRequest('http://www.keithandthegirl.com/forums/f6/katg-desktop-app-2-0-a-15274/'))}" toolTip="Talk about the update, request features, etc."/>
+	
+</mx:Window>

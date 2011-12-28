@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				 height="75" dataChange="dataChange(event);" click="navigateToURL(new URLRequest(data.guid))"
+				useHandCursor="true" buttonMode="true">
+	
+	<s:HGroup id="hgroup" width="100%" x="5" y="0">
+		<mx:Image y="3" width="48" height="48" id="img_tweet" source="{data.content.url}"  />
+		<s:RichText id="txt_tweet" fontSize="11" text="{data.title}" x="50" width="{width-60}" horizontalCenter="0" height="70"/>
+	</s:HGroup>
+	
+	<s:Label id="lbl_date" y="50" x="2" fontSize="9" />
+		
+	
+	
+	<fx:Script>
+		<![CDATA[
+			
+			
+			
+			
+			private function dataChange(event:Event):void
+			{
+				// only change twitter avatar if different, otherwise don't reload
+				
+				
+				
+				var d:Date = new Date(Date.parse(data.pubDate));
+				var day:String = new String();
+				switch (d.getDay())
+				{
+					case 0:
+						day = "Sun";
+						break;
+					case 1:
+						day = "Mon";
+						break;
+					case 2: 
+						day = "Tue";
+						break;
+					case 3:
+						day = "Wed";
+						break;
+					case 4:
+						day = "Thur";
+						break;
+					case 5:
+						day = "Fri";
+						break;
+					case 6:
+						day = "Sat";
+						break;
+				}
+				
+				lbl_date.text =  day + ", " + d.getHours() + ":" + d.getMinutes()
+				
+				callLater(img_tweet.load)
+				
+					
+			}
+		]]>
+	</fx:Script>
+	
+</mx:Canvas>

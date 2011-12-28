@@ -1,0 +1,38 @@
+/* CSS file */
+@namespace s "library://ns.adobe.com/flex/spark";
+@namespace mx "library://ns.adobe.com/flex/mx";
+
+
+s|List
+{
+	alternatingItemColors: #e3edd4, #b2ce89;
+	borderVisible: false;
+	rollOverColor: #D7E8BE;
+	selectionColor: #b2ce89;
+}
+
+mx|ToolTip
+{
+	 padding-bottom: 10px;
+	 padding-top: 10px;
+	 padding-left: 25px;
+	 padding-right: 25px;
+	 background-color: #ffffff;
+	 font-size: 11px;
+	 font-weight: bold;
+	 border-color: #000000;
+	 border-style: solid;
+	 border-visible: true;
+	 border-alpha: 1;
+	 
+	 
+}
+
+mx|Alert
+{
+	chrome-color: #008034;
+	color: #ffffff;
+	accent-color: #ffffff;
+	background-color: #00a054;
+	
+}

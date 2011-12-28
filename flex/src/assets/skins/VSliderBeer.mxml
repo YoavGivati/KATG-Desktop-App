@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Skin xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" 
+		xmlns:mx="library://ns.adobe.com/flex/mx">
+	<!-- host component -->
+	<fx:Metadata>
+		[HostComponent("spark.components.VSlider")]
+	</fx:Metadata>
+	
+	<!-- states -->
+	<s:states>
+		<s:State name="disabled" />
+		<s:State name="normal" />
+	</s:states>
+	<s:Button id="thumb" horizontalCenter="2" verticalCenter="0" skinClass="assets.skins.BeerButton" width="20" height="20"/>
+	<s:Rect  horizontalCenter="0" y="0" height="100%" width="1">
+		<s:fill>
+			<s:LinearGradient rotation="90">
+				<s:GradientEntry color="0x666666" 
+								 alpha="0.85" />
+				<s:GradientEntry color="0x666666"  
+								 alpha="0.85"/>
+			</s:LinearGradient>
+		</s:fill>
+	</s:Rect>
+	<!-- SkinParts
+	name=dataTip, type=mx.core.IFactory, required=false
+	name=track, type=spark.components.Button, required=false
+	name=thumb, type=spark.components.Button, required=false
+	-->
+
+</s:Skin>
